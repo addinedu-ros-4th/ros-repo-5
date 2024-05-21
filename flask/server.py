@@ -3,16 +3,13 @@ import os
 
 app = Flask(__name__)
 
-# 다운로드할 파일이 저장될 디렉토리 경로 설정
 DOWNLOADS_DIRECTORY = '/home/ito/ros_final/src/flask/downloads'
 
-# 파일 목록을 가져와서 템플릿에 전달하는 라우트
 @app.route('/')
 def show_files():
     files = os.listdir(DOWNLOADS_DIRECTORY)
     return render_template('files.html', files=files)
 
-# 각 파일을 다운로드하는 라우트
 @app.route('/download/<filename>')
 def download_file(filename):
     file_path = os.path.join(DOWNLOADS_DIRECTORY, filename)
@@ -21,7 +18,6 @@ def download_file(filename):
     else:
         return f'파일 "{filename}"을(를) 찾을 수 없습니다.'
 
-# 파일 업로드를 위한 라우트
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -32,10 +28,9 @@ def upload_file():
     if file.filename == '':
         return '파일 이름이 없습니다.'
 
-    # 파일을 다운로드 디렉토리에 저장합니다.
     file_path = os.path.join(DOWNLOADS_DIRECTORY, file.filename)
     file.save(file_path)
     return f'파일 "{file.filename}"이 업로드되었습니다.'
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)  # 서버를 모든 인터페이스에서 접근 가능하도록 설정
+    app.run(host='0.0.0.0', debug=True)
