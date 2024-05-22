@@ -10,10 +10,10 @@ class RobotTopic(Node):
     def __init__(self):
         super().__init__('Robot_Topic')
 
-        # 카메라 토픽 구독자 생성 (웹캠 사용시 /camera/image_raw)
+        # 카메라 토픽 구독자 생성 (웹캠 사용시 /camera)
         self.camera_subscription = self.create_subscription(
             Image,
-            '/camera',
+            '/camera/image_raw',
             self.camera_callback,
             10
         )
