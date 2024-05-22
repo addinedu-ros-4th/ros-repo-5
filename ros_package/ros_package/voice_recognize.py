@@ -3,95 +3,112 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 from ros_package_msgs.srv import CommandString
-from ros_package.mic_src.voice_recorder import VoiceRecorder
-from ros_package.mic_src.audio_amplifier import AudioAmplifier
-from ros_package.mic_src.sp_recog import audio_to_text
-import signal
-import time
+from ros_package.voice_recorder import VoiceRecorder
+from ros_package.sp_recog import audio_to_text
 import threading
+import time
 
-class VoiceNode(Node):
+class MainNode(Node):
     def __init__(self):
-        super().__init__('voice_node')
+        super().__init__('main_node')
         self.recorder = VoiceRecorder()
-        signal.signal(signal.SIGINT, self.handle_interrupt)
-        self.running = True
+        self.publisher_ = self.create_publisher(String, 'recognized_text', 10)
+        self.running = False
+        self.recording_thread = None  # 녹음 스레드 참조를 저장하는 변수
 
-        self.voice_signal_server = self.create_service(CommandString, '/voice_signal', self.voice_siganl_callback)
+        # Service to receive voice start command
+        self.voice_signal_server = self.create_service(CommandString, '/voice_signal', self.voice_signal_callback)
 
-        self.user_voice_publisher_ = self.create_publisher(String, 'user_voice', 10)
+        # Stop callback 설정
+        self.recorder.set_stop_callback(self.stop_threads)
 
+        # 스레드 초기화
+        self.monitor_thread = threading.Thread(target=self.monitor_file_system)
 
-    def voice_siganl_callback(self, request, response):
-        self.get_logger().info('Voice_siganl Server started')
+        # 스레드 시작
+        self.monitor_thread.start()
+
+    def voice_signal_callback(self, request, response):
+        """Callback function for voice start command"""
+        self.get_logger().info('Voice signal received')
 
         if request.command == "voice_start":
-            self.get_logger().info('Processing voice_start')
+            self.get_logger().info('Processing voice start command')
+            # Stop the current recording thread if it's running
+            if self.running:
+                self.running = False
+                self.recording_thread.join()  # Wait for the thread to finish
+            # Start a new recording thread
+            self.recording_thread = threading.Thread(target=self.record_and_process)
+            self.recording_thread.start()
+            self.running = True
             response.success = True
-            response.message = 'voice_start'
-            
-        elif request.command == "voice_stop":
-            self.get_logger().info('Processing voice_stop')
-            response.success = True
-            response.message = 'voice_stop'
+            response.message = 'Recording started'
+        else:
+            response.success = False
+            response.message = 'Unknown command'
 
         return response
 
-
-    def handle_interrupt(self, sig, frame):
-        self.recorder.save_recording()
+    def stop_threads(self):
+        """녹음이 중지될 때 스레드를 멈추는 함수"""
         self.running = False
-        exit(0)
-
 
     def record_and_process(self):
-        while self.running:
-            # 음성 녹음 시작
-            self.recorder.start_recording()
+        """녹음 및 처리 스레드"""
+        self.recorder.start_recording(duration=4)
+        max_recording_time = 10
+        start_time = time.time()
+
+        while rclpy.ok() and self.running:
+            if time.time() - start_time > max_recording_time:
+                print("Recording time limit reached! Saving recording...")
+                self.recorder.stop_recording()
+                self.running = False  # 녹음이 완료되면 녹음 상태를 재설정
+                break
+
+            time.sleep(1)
+
+        print("Recording thread stopped.")
 
 
     def monitor_file_system(self):
-        directory = "/home/pink/pinkbot/src/ros_package/resource/mic_data"
-        print(directory)
-        while self.running:
-            print("Inside the while loop")  # 루프가 실행되는지 확인
-            current_file_count = len(os.listdir(directory))
-            if current_file_count > 0:
-                # 파일이 존재할 때만 처리
+        """파일 시스템 모니터링 스레드"""
+        directory = "/home/pink/pinkbot/src/ros_package/ros_package/mic_data"
+        print("Monitoring directory:", directory)
+        while rclpy.ok():
+            if os.listdir(directory):
                 latest_file = sorted(os.listdir(directory))[-1]
                 latest_file_path = os.path.join(directory, latest_file)
-                print("Processing file:", latest_file_path)  # 디버그 문 추가
+                print("Processing file:", latest_file_path)
                 text = audio_to_text(latest_file_path)
                 if text:
                     print("Recognized text:", text)
                     self.send_to_ros2(text)
-                # 파일 삭제
+                else:
+                    print(f"Speech recognition could not understand audio: {latest_file_path}")
                 os.remove(latest_file_path)
-            time.sleep(1)  # 1초 대기
 
+            time.sleep(1)
+
+        print("Monitoring thread stopped.")
 
     def send_to_ros2(self, text):
+        """ROS 2 메시지를 발행하는 함수"""
         msg = String()
         msg.data = text
-        self.user_voice_publisher_.publish(msg)
-
+        self.publisher_.publish(msg)
 
 def main(args=None):
     rclpy.init(args=args)
-    voice_node = VoiceNode()
-    
-    # record_and_process 메서드를 실행하는 스레드 시작
-    record_thread = threading.Thread(target=voice_node.record_and_process)
-    record_thread.start()
-    
-    # monitor_file_system 메서드를 실행하는 스레드 시작
-    monitor_thread = threading.Thread(target=voice_node.monitor_file_system)
-    monitor_thread.start()
-    
-    # 모든 스레드가 종료할 때까지 대기
-    record_thread.join()
-    monitor_thread.join()
+    main_node = MainNode()
 
+    try:
+        rclpy.spin(main_node)
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt")
+
+    main_node.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
