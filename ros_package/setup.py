@@ -27,6 +27,7 @@ setup(
             'Robot_Service = ros_package.Robot_Service:main',
             'Robot_Driving = ros_package.Robot_Driving:main',
             'camera = ros_package.camera:main',
+            'voice_recognize = ros_package.voice_recognize:main',
         ],
     },
 )

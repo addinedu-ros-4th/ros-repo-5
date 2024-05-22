@@ -19,7 +19,7 @@ class RobotDriver(Node):
         self.robot_command_server = self.create_service(CommandString, 'Robot_Driving/robot_command', self.robot_command_callback)
 
         # voice_recognize로 voice_start 서비스를 보냄
-        self.voice_start_client = self.create_client(CommandString, '/voice_start')
+        self.voice_signal_client = self.create_client(CommandString, '/voice_signal')
         
         # # 기본적으로 navigator를 초기화
         # self.navigator = BasicNavigator()
@@ -98,7 +98,7 @@ class RobotDriver(Node):
     #     target_pose.pose.orientation.w = 1.0
 
     #     self.navigate_to_goal(target_pose.pose.position.x, target_pose.pose.position.y, target_pose.pose.position.z)
-    #     self.send_voice_start_command('voice_start')
+        # self.send_voice_start_command('voice_start') # or voice_stop
 
 
     # def handle_description(self):
@@ -107,14 +107,15 @@ class RobotDriver(Node):
 
         
     def send_voice_start_command(self, command: str, description: str = ""):
-        if not self.voice_start_client.wait_for_service(timeout_sec=5.0):
-            self.get_logger().error('User_command service not available')
+        if not self.voice_signal_client.wait_for_service(timeout_sec=5.0):
+            self.get_logger().error('Voice_siganl service not available')
             return
 
         request = CommandString.Request()
         request.command = command
+        request.description = description
 
-        future = self.voice_start_client.call_async(request)
+        future = self.voice_signal_client.call_async(request)
         future.add_done_callback(self.send_voice_start_command_callback)
 
 
@@ -122,9 +123,9 @@ class RobotDriver(Node):
         try:
             response = future.result()
             if response.success:
-                self.get_logger().info('User_command executed successfully (Driving to voice): %s' % response.message)
+                self.get_logger().info('Voice_siganl executed successfully (Driving to voice): %s' % response.message)
             else:
-                self.get_logger().error('Failed to execute User_command (Driving to voice): %s' % response.message)
+                self.get_logger().error('Failed to execute Voice_siganl (Driving to voice): %s' % response.message)
         except Exception as e:
             self.get_logger().error('Service call failed: %s' % str(e))
 

@@ -3,6 +3,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import Image 
 from ros_package_msgs.srv import CommandString
 from ros_package_msgs.msg import RobotState
+from std_msgs.msg import String
 from geometry_msgs.msg import PoseWithCovarianceStamped 
 
 class RobotTopic(Node):
@@ -45,7 +46,7 @@ class RobotTopic(Node):
         self.admin_camera_publisher = self.create_publisher(Image, 'Admin_Manager/camera', 10)
         self.admin_amcl_pose_publisher = self.create_publisher(PoseWithCovarianceStamped, 'Admin_Manager/amcl_pose', 10)
         self.admin_robot_state_publisher = self.create_publisher(RobotState, 'Admin_Manager/robot_state', 10)
-        self.admin_user_voice_publisher = self.create_publisher(RobotState, 'Admin_Manager/user_voice', 10)
+        self.admin_user_voice_publisher = self.create_publisher(String, 'Admin_Manager/user_voice', 10)
 
         # User_GUI로 퍼블리셔 생성
         self.user_amcl_pose_publisher = self.create_publisher(PoseWithCovarianceStamped, 'User_GUI/amcl_pose', 10)
