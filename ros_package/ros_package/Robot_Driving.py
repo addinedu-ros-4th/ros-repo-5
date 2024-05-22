@@ -16,7 +16,7 @@ class RobotDriver(Node):
         self.robot_state_pose_publisher = self.create_publisher(RobotState, '/robot_state', 10)
         
         # Robot_Driving/robot_command 서비스를 받아오는 서비스 서버 생성
-        self.robot_command_server = self.create_service(CommandString, 'Robot_Driving/robot_command', self.robot_command_callback)
+        self.robot_command_server = self.create_service(CommandString, '/Robot_Driving/robot_command', self.robot_command_callback)
 
         # voice_recognize로 voice_start 서비스를 보냄
         self.voice_signal_client = self.create_client(CommandString, '/voice_signal')

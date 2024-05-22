@@ -12,7 +12,7 @@ class CameraNode(Node):
         self.cap = cv2.VideoCapture(0)
 
         # /camera 토픽으로 영상을 보내기 위한 퍼블리셔 생성
-        self.publisher = self.create_publisher(Image, 'camera', 10)
+        self.publisher = self.create_publisher(Image, '/camera', 10)
 
         # OpenCV 이미지와 ROS 이미지 간 변환을 위한 CvBridge 객체 생성
         self.bridge = CvBridge()

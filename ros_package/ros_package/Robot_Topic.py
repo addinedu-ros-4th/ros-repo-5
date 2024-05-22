@@ -10,10 +10,10 @@ class RobotTopic(Node):
     def __init__(self):
         super().__init__('Robot_Topic')
 
-        # 카메라 토픽 구독자 생성 (웹캠 사용시 /camera)
+        # 카메라 토픽 구독자 생성 (웹캠 사용시 /camera/image_raw)
         self.camera_subscription = self.create_subscription(
             Image,
-            '/camera/image_raw',
+            '/camera',
             self.camera_callback,
             10
         )
@@ -59,13 +59,13 @@ class RobotTopic(Node):
 
 
     def camera_callback(self, msg):
-        self.get_logger().info('Received /camera/image_raw , publishing to Admin_Manager/camera')
+        # self.get_logger().info('Received /camera/image_raw , publishing to Admin_Manager/camera')
 
         self.admin_camera_publisher.publish(msg)
 
 
     def pose_callback(self, msg):
-        self.get_logger().info('Received /amcl_pose , publishing to Admin_Manager/amcl_pose , User_GUI/amcl_pose')
+        # self.get_logger().info('Received /amcl_pose , publishing to Admin_Manager/amcl_pose , User_GUI/amcl_pose')
 
         self.admin_amcl_pose_publisher.publish(msg)
         self.user_amcl_pose_publisher.publish(msg)
