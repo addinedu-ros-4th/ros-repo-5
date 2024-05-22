@@ -2,12 +2,16 @@ import sys
 import rclpy as rp
 from rclpy.node import Node
 from geometry_msgs.msg import PoseWithCovarianceStamped
-from PyQt5 import uic
-from PyQt5.QtWidgets import QApplication, QDialog, QLabel
-from PyQt5.QtGui import QPixmap, QImage , QTransform
-from PyQt5.QtCore import pyqtSignal, Qt, QThread
+from ros_package_msgs.srv import CommandString
+from PyQt6 import uic
+from PyQt6.QtWidgets import QApplication, QDialog, QLabel
+from PyQt6.QtGui import QPixmap, QImage, QTransform
+from PyQt6.QtCore import pyqtSignal, QThread
 import cv2
 import numpy as np
+from gtts import gTTS
+import pygame
+import os
 
 class Ros2PyQtApp(QDialog):
     # ROS2에서 수신한 데이터를 업데이트하는 신호 정의
@@ -28,7 +32,7 @@ class Ros2PyQtApp(QDialog):
         # numpy 배열을 QImage로 변환
         height, width = map_image.shape
         bytes_per_line = width
-        q_image = QImage(map_image.data, width, height, bytes_per_line, QImage.Format_Grayscale8)
+        q_image = QImage(map_image.data, width, height, bytes_per_line, QImage.Format.Format_Grayscale8)
         
         # QImage를 QPixmap으로 변환하여 QLabel에 설정
         pixmap = QPixmap.fromImage(q_image)
@@ -48,10 +52,16 @@ class UserGUI(Node):
         # amcl_pose 토픽 구독자 생성 
         self.pose_subscription = self.create_subscription(
             PoseWithCovarianceStamped,
-            'User_GUI/amcl_pose',
+            '/User_GUI/amcl_pose',
             self.pose_callback,
             10
         )
+
+        # Robot_server로 robot_command 서비스를 받아옴
+        self.robot_command_server = self.create_service(CommandString, 'User_GUI/robot_command', self.robot_command_callback)
+
+        # pygame 초기화
+        pygame.init()
 
         # 맵 이미지 로드
         self.map_image = cv2.imread('/home/jongchanjang/my_mobile/MUSEUM.pgm', cv2.IMREAD_GRAYSCALE)
@@ -71,10 +81,71 @@ class UserGUI(Node):
 
         # 주기적으로 위치를 업데이트하는 타이머 설정
         self.timer = self.create_timer(1.0, self.timer_callback)
+    
 
+    def play_tts(self, text):
+        # TTS 생성
+        tts = gTTS(text, lang='ko')
+
+        # 임시 파일로 저장
+        tts.save('temp.mp3')
+
+        # 재생
+        pygame.mixer.music.load('temp.mp3')
+        pygame.mixer.music.play()
+
+        # 재생이 완료될 때까지 대기
+        while pygame.mixer.music.get_busy():
+            pygame.time.Clock().tick(10)
+
+        # 임시 파일 삭제
+        os.remove('temp.mp3')
+
+
+    def robot_command_callback(self, request, response):
+        self.get_logger().info(f'Received command: {request.command}')
+
+        if request.command == "human_detect":
+            self.get_logger().info('Processing human_detect')
+            response.success = True
+            response.message = 'human_detect'
+
+            self.play_tts('무엇을 도와드릴까요?')
+
+
+        elif request.command == "description":
+            self.get_logger().info('Processing description')
+            response.success = True
+            response.message = 'description'
+
+            self.play_tts('작품설명 하겠습니다 {}'.format(request.description))
+
+        elif request.command == "guide":
+            self.get_logger().info('Processing guide')
+            response.success = True
+            response.message = 'guide'
+
+            self.play_tts('{}로 길안내 시작하겠습니다'.format(request.description))
+
+
+        elif request.command == "comeback":
+            self.get_logger().info('Processing comeback')
+            response.success = True
+            response.message = 'comeback'
+
+            self.play_tts('편안한 관람되십시오')
+
+
+        else:
+            self.get_logger().error('Unknown command received')
+            response.success = False
+            response.message = 'Unknown'
+
+        return response
+    
 
     def pose_callback(self, msg):
-        self.get_logger().info('Received /amcl_pose')
+        # self.get_logger().info('Received /amcl_pose')
 
         # 로봇의 위치 받아오기
         self.robot_pose_x = int((msg.pose.pose.position.x - self.origin[0]) / self.resolution)  # x 위치
@@ -126,7 +197,7 @@ def main(args=None):
     ros2_thread.start()
 
     ros2_pyqt_app.show()
-    app.exec_()
+    app.exec()
 
     user_gui.destroy_node()
     rp.shutdown()
