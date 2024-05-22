@@ -29,6 +29,7 @@ class CameraNode(Node):
             # /camera 토픽으로 영상 메시지 발행
             self.publisher.publish(ros_image)
 
+
             
 def main(args=None):
     rp.init(args=args)

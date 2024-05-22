@@ -3,16 +3,16 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 from ros_package_msgs.srv import CommandString
-from ros_package.voice_recorder import VoiceRecorder
-from ros_package.sp_recog import audio_to_text
+from ros_package.mic_src.voice_recorder import VoiceRecorder
+from ros_package.mic_src.sp_recog import audio_to_text
 import threading
 import time
 
-class MainNode(Node):
+class VoiceNode(Node):
     def __init__(self):
-        super().__init__('main_node')
+        super().__init__('voice_node')
         self.recorder = VoiceRecorder()
-        self.publisher_ = self.create_publisher(String, 'recognized_text', 10)
+        self.publisher_ = self.create_publisher(String, '/recognized_text', 10)
         self.running = False
         self.recording_thread = None  # 녹음 스레드 참조를 저장하는 변수
 
@@ -101,14 +101,14 @@ class MainNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    main_node = MainNode()
+    voice_node = VoiceNode()
 
     try:
-        rclpy.spin(main_node)
+        rclpy.spin(voice_node)
     except KeyboardInterrupt:
         print("KeyboardInterrupt")
 
-    main_node.destroy_node()
+    voice_node.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':

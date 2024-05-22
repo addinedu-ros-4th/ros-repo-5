@@ -37,7 +37,7 @@ class RobotTopic(Node):
         # user_voice 토픽 구독자 생성 
         self.user_voice_subscription = self.create_subscription(
             RobotState,
-            '/user_voice',
+            '/recognized_text',
             self.user_voice_callback,
             10
         )

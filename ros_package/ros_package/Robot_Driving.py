@@ -57,6 +57,7 @@ class RobotDriver(Node):
             self.patrolling = False
             self.current_state = 'Human Detection'
             self.command = request.coommnad
+            self.handle_human_detect()
         elif request.command == "description":
             self.get_logger().info('Received description')
             response.success = True
