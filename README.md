@@ -95,7 +95,7 @@ source source install/setup.bash
 ros2 launch minibot_bringup bringup_robot.launch.py
 ```
 
-### Terminal 3
+### Terminal 4
 ```bash
 cd pinkbot/
 source /opt/ros/humble/setup.bash
