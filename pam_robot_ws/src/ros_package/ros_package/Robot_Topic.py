@@ -13,7 +13,7 @@ class RobotTopic(Node):
         # 카메라 토픽 구독자 생성 (웹캠 사용시 /camera)
         self.camera_subscription = self.create_subscription(
             Image,
-            '/camera/image_raw',
+            '/camera',
             self.camera_callback,
             10
         )
