@@ -16,8 +16,8 @@ def generate_launch_description():
             Node(
                 namespace= "" , package= "ros_package" ,
                 executable= "camera" , output = "screen"),
-            # Node(
-            #     namespace= "voice" , package= "ros_package" ,
-            #     executable= "voice_recognize" , output = "screen"),
+            Node(
+                namespace= "voice" , package= "ros_package" ,
+                executable= "voice_recognize" , output = "screen"),
         ]
     )

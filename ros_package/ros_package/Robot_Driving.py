@@ -17,9 +17,6 @@ class RobotDriver(Node):
         
         # Robot_Driving/robot_command 서비스를 받아오는 서비스 서버 생성
         self.robot_command_server = self.create_service(CommandString, '/Robot_Driving/robot_command', self.robot_command_callback)
-
-        # voice_recognize로 voice_start 서비스를 보냄
-        self.voice_signal_client = self.create_client(CommandString, '/voice_signal')
         
         # 기본적으로 navigator를 초기화
         self.navigator = BasicNavigator()
@@ -86,29 +83,7 @@ class RobotDriver(Node):
         return response
     
     def handle_human_detect(self):
-        self.send_voice_start_command('voice_start')
-        
-    def send_voice_start_command(self, command: str, description: str = ""):
-        if not self.voice_signal_client.wait_for_service(timeout_sec=5.0):
-            self.get_logger().error('Voice_signal service not available')
-            return
-
-        request = CommandString.Request()
-        request.command = command
-        request.description = description
-
-        future = self.voice_signal_client.call_async(request)
-        future.add_done_callback(self.send_voice_start_command_callback)
-
-    def send_voice_start_command_callback(self, future):
-        try:
-            response = future.result()
-            if response.success:
-                self.get_logger().info('Voice_signal executed successfully (Driving to voice): %s' % response.message)
-            else:
-                self.get_logger().error('Failed to execute Voice_signal (Driving to voice): %s' % response.message)
-        except Exception as e:
-            self.get_logger().error('Service call failed: %s' % str(e))
+        self.human
 
     def handle_description(self):
         self.get_logger().info('Robot stopped for description.')
@@ -117,7 +92,6 @@ class RobotDriver(Node):
         self.get_logger().info('Robot guiding.')
 
     def comeback_to_patrol(self):
-        self.send_voice_start_command('voice_stop') 
         self.patrolling = True
         self.patrol_work()
 
@@ -180,6 +154,7 @@ class RobotDriver(Node):
                         self.forward_patrol = True
 
                     # 목표 지점 도착 후 3초 대기 후 커맨드가 있으면 처리
+                    self.publish_robot_state()
                     time.sleep(3)
                     if self.command_received:
                         break
