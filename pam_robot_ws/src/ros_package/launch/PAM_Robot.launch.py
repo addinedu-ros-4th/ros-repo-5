@@ -5,13 +5,19 @@ def generate_launch_description():
     return LaunchDescription(
         [
             Node(
-                namespace= "ros_service" , package= "ros_package" ,
+                namespace= "" , package= "ros_package" ,
                 executable= "Robot_Service" , output = "screen"),
             Node(
-                namespace= "ros_topic" , package= "ros_package" ,
+                namespace= "" , package= "ros_package" ,
                 executable= "Robot_Topic" , output = "screen"),
             Node(
-                namespace= "ros_driver" , package= "ros_package" ,
+                namespace= "" , package= "ros_package" ,
                 executable= "Robot_Driving" , output = "screen"),
+            Node(
+                namespace= "" , package= "ros_package" ,
+                executable= "camera" , output = "screen"),
+            Node(
+                namespace= "" , package= "ros_package" ,
+                executable= "voice_recognize" , output = "screen"),
         ]
     )
