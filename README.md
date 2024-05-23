@@ -1,9 +1,6 @@
 # ros-repo-5
 파이널 프로젝트 5조 저장소. 자율적 위기 대응 및 상호작용 안내 서비스 로봇
 
-version:0.1
-
-
 # Admin 
 ## To get started
 
