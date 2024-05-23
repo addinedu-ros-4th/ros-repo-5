@@ -2,7 +2,7 @@ import sys
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import CompressedImage, Image
 from msg_pkg.msg import SignalMsg, RobotState
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QTextEdit
 from PyQt6.QtGui import QPixmap, QImage
@@ -12,6 +12,7 @@ from PyQt6 import uic
 from threading import Thread
 from PyQt6.QtCore import pyqtSignal, QObject
 from msg_pkg.srv import CommandString 
+import numpy as np
 
 class Ros2PyQtApp(QMainWindow):
     
@@ -106,15 +107,16 @@ class ImageSubscriber(Node):
         self.bridge = CvBridge()
         
         self.subscription = self.create_subscription(
-            Image,
-            'Admin_Manager/camera',
+            CompressedImage,
+            '/camera/compressed',
             self.listener_callback,
             10)
         
         self.subscription  # prevent unused variable warning
         
     def listener_callback(self, msg):
-        cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+        np_arr = np.frombuffer(msg.data, np.uint8)
+        cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         self.ui_app.display_image(cv_image)
         
 class MapSubscriber(Node):
