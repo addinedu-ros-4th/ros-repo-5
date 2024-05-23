@@ -4,7 +4,7 @@
 version:0.1
 
 
-# Admin Set Up
+# Admin 
 ## To get started
 
 
@@ -51,7 +51,7 @@ rviz2 -d `ros2 pkg prefix minibot_navigation2`/share/minibot_navigation2/rviz/na
 ```
 
 
-# Robot Set Up
+# Robot 
 ---
 ## To get started
 
