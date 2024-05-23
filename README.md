@@ -24,7 +24,7 @@ colcon build
 source /opt/ros/humble/setup.bash
 source source install/setup.bash
 ```
-# Running the Code
+## Running the Code
 ---
 ### Terminal 1
 ```bash
@@ -76,7 +76,7 @@ source source install/setup.bash
 sudo chmod 666 /dev/video0
 ```
 
-# Running the Code
+## Running the Code
 ---
 ### Terminal 1
 ```bash
