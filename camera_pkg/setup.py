@@ -26,6 +26,7 @@ setup(
         'console_scripts': [
             'img_publisher = camera_pkg.img_publisher:main',
             'yolo_test_node = camera_pkg.yolo_test_node:main',
+            'img_compressed = camera_pkg.img_compressed:main',
         ],
     },
 )
