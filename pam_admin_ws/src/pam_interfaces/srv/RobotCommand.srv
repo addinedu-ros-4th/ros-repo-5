@@ -1,6 +1,0 @@
-#req
-string command
----
-bool success
-string message
-#res
