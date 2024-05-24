@@ -118,7 +118,7 @@ class UserGUI(Node):
             response.success = True
             response.message = 'description'
 
-            self.play_tts('작품설명 하겠습니다 {}'.format(request.description))
+            self.play_tts('작품설명 하겠습니다 {} , 또 다른 도움이 필요하십니까?'.format(request.description))
 
         elif request.command == "guide":
             self.get_logger().info('Processing guide')
@@ -127,6 +127,12 @@ class UserGUI(Node):
 
             self.play_tts('{}로 길안내 시작하겠습니다'.format(request.description))
 
+        elif request.command == "re":
+            self.get_logger().info('Processing re')
+            response.success = True
+            response.message = 're'
+
+            self.play_tts(request.description)
 
         elif request.command == "comeback":
             self.get_logger().info('Processing comeback')
