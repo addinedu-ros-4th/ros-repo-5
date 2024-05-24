@@ -1,0 +1,10 @@
+# Goal definition
+nav_msgs/Path path
+
+---
+# Result definition
+bool success
+
+---
+# Feedback definition
+geometry_msgs/Pose current_pose

@@ -1,24 +1,22 @@
 cmake_minimum_required(VERSION 3.8)
-project(msg_pkg)
+project(pam_interfaces)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+find_package(rosidl_default_generators REQUIRED)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "srv/RobotCommand.srv"
+  "srv/CommandString.srv"
+  "msgs/RobotState.msg"
+)
 # find dependencies
 find_package(ament_cmake REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
-
-rosidl_generate_interfaces(${PROJECT_NAME}
-"msg/SignalMsg.msg"
-"msg/State.msg"
-"msg/RobotState.msg"
-"srv/CommandString.srv"
-"action/Signal.action"
-)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
