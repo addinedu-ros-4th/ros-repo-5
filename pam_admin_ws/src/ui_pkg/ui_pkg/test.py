@@ -3,7 +3,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from sensor_msgs.msg import CompressedImage, Image
-from msg_pkg.msg import SignalMsg, RobotState
+from pam_interfaces.msgs import RobotState
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QTextEdit
 from PyQt6.QtGui import QPixmap, QImage
 from cv_bridge import CvBridge
@@ -26,8 +26,6 @@ class Ros2PyQtApp(QMainWindow):
 
         # self.send_msg_btn.clicked.connect(self.send_message)
         self.node = rclpy.create_node('admin_node')
-        # self.publisher = self.node.create_publisher(SignalMsg, 'state', 10)
-
         self.person_flag = False
         self.detect_array = []
 
@@ -41,13 +39,6 @@ class Ros2PyQtApp(QMainWindow):
         else :
             self.state_textEdit.setText("Normal")
             return
-        
-    # def send_message(self):
-    #     req = SignalMsg()
-    #     req.recv_msg = "Send_msg"
-    #     self.publisher.publish(req)
-
-        
         
     def display_image(self, cv_image):
         height, width, channel = cv_image.shape
@@ -143,7 +134,7 @@ class TextSubscriber(Node):
         self.ui_app = ui_app
         
         self.subscription = self.create_subscription(
-            SignalMsg,
+            RobotState,
             'signal_topic',
             self.listener_callback,
             10)

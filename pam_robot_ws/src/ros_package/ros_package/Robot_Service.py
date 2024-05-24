@@ -1,6 +1,6 @@
 import rclpy as rp
 from rclpy.node import Node
-from ros_package_msgs.srv import CommandString
+from pam_interfaces.srv import CommandString
 import time 
 
 class RobotService(Node):

@@ -1,8 +1,8 @@
 import rclpy as rp
 from rclpy.node import Node
 from sensor_msgs.msg import Image 
-from ros_package_msgs.srv import CommandString
-from ros_package_msgs.msg import RobotState
+from pam_interfaces.srv import CommandString
+from pam_interfaces.msgs import RobotState
 from std_msgs.msg import String
 from geometry_msgs.msg import PoseWithCovarianceStamped 
 
@@ -13,7 +13,7 @@ class RobotTopic(Node):
         # 카메라 토픽 구독자 생성 (웹캠 사용시 /camera)
         self.camera_subscription = self.create_subscription(
             Image,
-            '/camera',
+            '/camera/compressed',
             self.camera_callback,
             10
         )

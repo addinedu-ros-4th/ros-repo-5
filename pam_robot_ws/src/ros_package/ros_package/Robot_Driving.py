@@ -1,8 +1,7 @@
 import rclpy as rp
 from rclpy.node import Node
-from std_msgs.msg import String  # 명령을 위한 메시지 타입 변경
-from ros_package_msgs.msg import RobotState
-from ros_package_msgs.srv import CommandString
+from pam_interfaces.srv import CommandString
+from pam_interfaces.msgs import RobotState
 from nav2_simple_commander.robot_navigator import BasicNavigator
 from geometry_msgs.msg import PoseStamped
 from nav2_simple_commander.robot_navigator import TaskResult
@@ -16,13 +15,8 @@ class RobotDriver(Node):
         # 로봇 상태 나타내는 퍼블리셔 
         self.robot_state_pose_publisher = self.create_publisher(RobotState, '/robot_state', 10)
         
-        # Robot_Driving/robot_command 토픽을 받아오는 구독자 생성
-        self.robot_command_subscriber = self.create_subscription(
-            String, 
-            '/Robot_Driving/robot_command', 
-            self.robot_command_callback, 
-            10
-        )
+        # Robot_Driving/robot_command 서비스를 받아오는 서비스 서버 생성
+        self.robot_command_server = self.create_service(CommandString, '/Robot_Driving/robot_command', self.robot_command_callback)
 
         # voice_recognize로 voice_start 서비스를 보냄
         self.voice_signal_client = self.create_client(CommandString, '/voice_signal')
@@ -53,32 +47,42 @@ class RobotDriver(Node):
         self.get_logger().info('Published robot state: {}'.format(msg.command))
 
 
-    def robot_command_callback(self, msg):
-        command = msg.data
-        self.get_logger().info('Received command: {}'.format(command))
+    def robot_command_callback(self, request, response):
+        self.get_logger().info('Robot Command Server started')
         self.command_received = True
-        if command == "human_detect":
+        if request.command == "human_detect":
             self.get_logger().info('Received human_detect')
+            response.success = True
+            response.message = 'human_detect'
             self.patrolling = False
             self.current_state = 'Human Detection'
-            self.handle_human_detect()
-        elif command == "description":
+            self.command = request.coommnad
+        elif request.command == "description":
             self.get_logger().info('Received description')
+            response.success = True
+            response.message = 'description'
             self.patrolling = False
             self.current_state = 'Description'
             self.handle_description()
-        elif command == "guide":
+        elif request.command == "guide":
             self.get_logger().info('Received guide')
+            response.success = True
+            response.message = 'guide'
             self.patrolling = False
             self.current_state = 'Guiding'
-            self.handle_guide()
-        elif command == "comeback":
+            self.handle_guide(request.description)
+        elif request.command == "comeback":
             self.get_logger().info('Received comeback')
+            response.success = True
+            response.message = 'comeback'
             self.current_state = 'Returning to Patrol'
             self.comeback_to_patrol()
         else:
-            self.get_logger().error('Received Unknown command')
-            self.command_received = False
+            self.get_logger().error('Received Unknown')
+            response.success = False
+            response.message = 'Unknown'
+
+        return response
     
     def handle_human_detect(self):
         self.send_voice_start_command('voice_start')
@@ -108,7 +112,7 @@ class RobotDriver(Node):
     def handle_description(self):
         self.get_logger().info('Robot stopped for description.')
 
-    def handle_guide(self, description=""):
+    def handle_guide(self, description):
         self.get_logger().info('Robot guiding.')
 
     def comeback_to_patrol(self):
