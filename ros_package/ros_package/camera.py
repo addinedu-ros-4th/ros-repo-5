@@ -9,7 +9,7 @@ class CameraNode(Node):
         super().__init__('Camera')
 
         # 웹캠에서 영상을 읽기 위한 VideoCapture 객체 생성
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture(1)
 
         # /camera 토픽으로 영상을 보내기 위한 퍼블리셔 생성
         self.publisher = self.create_publisher(Image, '/camera', 10)

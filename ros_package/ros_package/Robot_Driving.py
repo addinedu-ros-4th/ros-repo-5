@@ -6,7 +6,7 @@ from nav2_simple_commander.robot_navigator import BasicNavigator
 from geometry_msgs.msg import PoseStamped
 from nav2_simple_commander.robot_navigator import TaskResult
 import threading
-import time
+import time , asyncio
 
 class RobotDriver(Node):
     def __init__(self):
@@ -18,9 +18,9 @@ class RobotDriver(Node):
         # Robot_Driving/robot_command 서비스를 받아오는 서비스 서버 생성
         self.robot_command_server = self.create_service(CommandString, '/Robot_Driving/robot_command', self.robot_command_callback)
         
-        # 기본적으로 navigator를 초기화
-        self.navigator = BasicNavigator()
-        self.navigator.waitUntilNav2Active()
+        # # 기본적으로 navigator를 초기화
+        # self.navigator = BasicNavigator()
+        # self.navigator.waitUntilNav2Active()
 
         # 순찰 상태 관리
         self.current_state = 'Patrolling'
@@ -33,7 +33,7 @@ class RobotDriver(Node):
         # 주기적으로 로봇 상태를 퍼블리시
         self.publish_robot_state()
 
-        self.patrol_work()
+        # self.patrol_work()
 
     
     def publish_robot_state(self):
@@ -41,59 +41,8 @@ class RobotDriver(Node):
         msg.command = self.current_state
 
         self.robot_state_pose_publisher.publish(msg)
-        self.get_logger().info('Published robot state: {}'.format(msg.command))
+        # self.get_logger().info('Published robot state: {}'.format(msg.command))
 
-
-    def robot_command_callback(self, request, response):
-        self.get_logger().info('Robot Command Server started')
-        self.command_received = True
-        if request.command == "human_detect":
-            self.get_logger().info('Received human_detect')
-            response.success = True
-            response.message = 'human_detect'
-            self.patrolling = False
-            self.current_state = 'Human Detection'
-            self.command = request.coommnad
-            self.handle_human_detect()
-        elif request.command == "description":
-            self.get_logger().info('Received description')
-            response.success = True
-            response.message = 'description'
-            self.patrolling = False
-            self.current_state = 'Description'
-            self.handle_description()
-        elif request.command == "guide":
-            self.get_logger().info('Received guide')
-            response.success = True
-            response.message = 'guide'
-            self.patrolling = False
-            self.current_state = 'Guiding'
-            self.handle_guide(request.description)
-        elif request.command == "comeback":
-            self.get_logger().info('Received comeback')
-            response.success = True
-            response.message = 'comeback'
-            self.current_state = 'Returning to Patrol'
-            self.comeback_to_patrol()
-        else:
-            self.get_logger().error('Received Unknown')
-            response.success = False
-            response.message = 'Unknown'
-
-        return response
-    
-    def handle_human_detect(self):
-        self.human
-
-    def handle_description(self):
-        self.get_logger().info('Robot stopped for description.')
-
-    def handle_guide(self, description):
-        self.get_logger().info('Robot guiding.')
-
-    def comeback_to_patrol(self):
-        self.patrolling = True
-        self.patrol_work()
 
     def patrol_work(self):
         goal_poses = [
@@ -154,10 +103,84 @@ class RobotDriver(Node):
                         self.forward_patrol = True
 
                     # 목표 지점 도착 후 3초 대기 후 커맨드가 있으면 처리
-                    self.publish_robot_state()
                     time.sleep(3)
+
                     if self.command_received:
                         break
+
+
+    def robot_command_callback(self, request, response):
+        self.get_logger().info('Robot Command Server started')
+
+        self.command_received = True
+        
+        if request.command == "human_detect":
+            self.get_logger().info('Received human_detect')
+            response.success = True
+            response.message = 'human_detect'
+
+            self.patrolling = False
+            self.current_state = 'Human Detection'
+
+            self.handle_human_detect()
+ 
+
+        elif request.command == "description":
+            self.get_logger().info('Received description')
+            response.success = True
+            response.message = 'description'
+
+            self.patrolling = False
+            self.current_state = 'Description'
+
+            self.handle_description()
+            
+
+        elif request.command == "guide":
+            self.get_logger().info('Received guide')
+            response.success = True
+            response.message = 'guide'
+
+            self.patrolling = False
+            self.current_state = 'Guiding'
+
+            self.handle_guide(request.description)
+
+            
+        elif request.command == "comeback":
+            self.get_logger().info('Received comeback')
+            response.success = True
+            response.message = 'comeback'
+
+            self.patrolling = True
+            self.current_state = 'Returning to Patrol'
+
+            self.comeback_to_patrol()
+
+        else:
+            self.get_logger().error('Received Unknown')
+            response.success = False
+            response.message = 'Unknown'
+
+        return response
+    
+
+    def handle_human_detect(self):
+        self.get_logger().info('human_detect.')
+        time.sleep(3)
+        print('ok')
+        
+    def handle_description(self):
+        self.get_logger().info('Robot stopped for description.')
+
+    def handle_guide(self, description):
+        self.get_logger().info('Robot guiding.')
+
+    def comeback_to_patrol(self):
+        self.patrolling = True
+        self.current_state = 'Patrolling'
+        # self.patrol_work()
+
 
 def main(args=None):
     rp.init(args=args)
