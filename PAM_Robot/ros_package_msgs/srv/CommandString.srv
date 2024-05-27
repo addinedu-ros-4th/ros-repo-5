@@ -1,5 +1,5 @@
 string command
-string description
+string description 
 ---
 bool success
 string message

@@ -7,7 +7,9 @@ from cv_bridge import CvBridge
 import torch
 import numpy as np
 from ros_package_msgs.srv import CommandString 
+from ros_package_msgs.msg import Voice
 from ros_package_msgs.msg import RobotState
+from .DB_Manager import DatabaseManager
 
 # YOLOv5 모델 불러오기
 def load_yolo_model():
@@ -26,7 +28,12 @@ def detect_people(model, img):
 class Admin_Manager(Node):
     def __init__(self):
         super().__init__('Admin_Manager')
-        
+
+        # DB_Manager 인스턴스 생성
+        self.db_manager = DatabaseManager(host="localhost", user="root")
+        # 데이터베이스 연결
+        self.db_manager.connect_database()
+
 
         # YOLO 모델 불러오기
         self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
@@ -67,7 +74,7 @@ class Admin_Manager(Node):
 
         # user_voice 토픽 구독자 생성 
         self.user_voice_subscription = self.create_subscription(
-            RobotState,
+            Voice,
             'Admin_Manager/recognized_text',
             self.user_voice_callback,
             10
@@ -107,22 +114,16 @@ class Admin_Manager(Node):
 
     def robot_state_callback(self, msg):
         # self.get_logger().info('Received /robot_state')
-        robot_state = msg.command  # 메시지 구조에 맞게 수정 필요
-        # self.get_logger().info(f'{robot_state}')
-
-        if robot_state == 'arrive':
+        self.robot_state = msg.command  # 메시지 구조에 맞게 수정 필요
+        self.get_logger().info(f'{self.robot_state}')
+        if 'arrive' in self.robot_state:
             self.arrive = True
+            self.name = self.robot_state[len("arrive at"):].strip()
         else:
             self.arrive = False
             self.send_state = False
         # self.get_logger().info(f'Arrive: {self.arrive}')
 
-
-    def user_voice_callback(self, msg):
-        self.get_logger().info('Received /user_voice')
-        print(msg)
-        self.send_robot_command("comeback") # 예시
-        
 
     def check_state(self):
         # self.get_logger().info("Checking state")
@@ -133,23 +134,45 @@ class Admin_Manager(Node):
             if detect_people(self.model, self.cv_img) and self.send_state == False:
                 self.get_logger().info("Requrest to robot : HD")
 
-                self.send_robot_command("human_detect", "human_detected")
+                self.send_robot_command("human_detect")
                 self.send_state = True
+
+
+    def user_voice_callback(self, msg):
+        self.get_logger().info('Received /user_voice')
+
+        text = msg.command
+        print(text)
+
+        keywords = ["피라미드", "나폴레옹", "스핑크스", "오벨리스크", "람세스", "이시스"]
+
+        if "설명" in text:
+            self.get_logger().info("Description command detected!")
+            script = self.db_manager.find_script_by_name(self.name)
+            self.send_robot_command("description", script)
+            print(script)
+
+        elif "안내" in text:
+            self.get_logger().info("Guide command detected!")
+
+            # 텍스트에서 키워드 추출
+            for keyword in keywords:
+                if keyword in text:
+                    self.get_logger().info(f"Extracted artwork name: {keyword}")
+                    self.send_robot_command("guide", keyword)
+                    break
                 
+        else:
+            self.send_robot_command("comeback")
+
 
     def send_robot_command(self, command: str, description: str = ""):
         if not self.robot_command_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().error('Robot_command service not available')
             
-
         request = CommandString.Request()
-        if command == "human_detect":
-            
-            request.command = command
-            request.description = "human_detected"
-        elif command == "voice":
-            request.command = command
-            request.description = description
+        request.command = command
+        request.description = description
 
         future = self.robot_command_client.call_async(request)
         future.add_done_callback(self.send_robot_command_callback)

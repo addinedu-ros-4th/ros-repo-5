@@ -8,35 +8,8 @@ class DatabaseManager:
         self.db_name = "ros_final"
         self.cur = None
         self.conn = None
-        self.password = "your_password"
+        self.password = "1234"
 
-    def create_database(self, db_name):
-        try:
-            self.cur.execute("CREATE DATABASE IF NOT EXISTS {}".format(db_name))
-        except mysql.connector.Error as err:
-            print("Failed creating database: {}".format(err))
-            exit(1)
-    
-    def create_table(self):
-        try:
-            self.cur.execute("""
-                CREATE TABLE IF NOT EXISTS Scripts (
-                    name CHAR(255),
-                    script TEXT
-                )
-            """)
-        except mysql.connector.Error as err:
-            print("Failed creating table: {}".format(err))
-            exit(1)
-
-    def insert_script(self, name, script):
-        try:
-            self.cur.execute("INSERT INTO Scripts (name, script) VALUES (%s, %s)", (name, script))
-            self.conn.commit()
-            print("Script inserted successfully.")
-        except mysql.connector.Error as err:
-            print("Failed inserting script: {}".format(err))
-            exit(1)
 
     def connect_database(self, db_name=None):
         if db_name is None:
@@ -57,7 +30,6 @@ class DatabaseManager:
                     password=self.password
                 )
                 self.cur = self.conn.cursor()
-                self.create_database(db_name)
                 self.conn.database = db_name
             else:
                 raise

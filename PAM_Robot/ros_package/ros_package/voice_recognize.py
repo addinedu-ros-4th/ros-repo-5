@@ -1,7 +1,7 @@
 import os
 import rclpy
 from rclpy.node import Node
-from ros_package_msgs.msg import RobotState
+from ros_package_msgs.msg import Voice
 from ros_package_msgs.srv import CommandString
 from ros_package.voice_recorder import VoiceRecorder
 from ros_package.sp_recog import audio_to_text
@@ -13,7 +13,7 @@ class VoiceRecognitionNode(Node):
     def __init__(self):
         super().__init__('voice_recognition_node')
         self.recorder = VoiceRecorder()
-        self.publisher_ = self.create_publisher(RobotState, '/recognized_text', 10)
+        self.publisher_ = self.create_publisher(Voice, '/recognized_text', 10)
         self.running = False
         self.recording_thread = None
 
@@ -128,7 +128,7 @@ class VoiceRecognitionNode(Node):
 
     def send_to_ros2(self, text):
         """ROS 2 메시지를 발행하는 함수"""
-        msg = RobotState()
+        msg = Voice()
         msg.command = text
         self.publisher_.publish(msg)
 

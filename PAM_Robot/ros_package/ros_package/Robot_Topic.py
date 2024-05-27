@@ -1,10 +1,10 @@
 import rclpy as rp
 from rclpy.node import Node
 from sensor_msgs.msg import Image 
-from ros_package_msgs.srv import CommandString
+from ros_package_msgs.msg import Voice
 from ros_package_msgs.msg import RobotState
-from std_msgs.msg import String
 from geometry_msgs.msg import PoseWithCovarianceStamped 
+import time
 
 class RobotTopic(Node):
     def __init__(self):
@@ -36,7 +36,7 @@ class RobotTopic(Node):
 
         # user_voice 토픽 구독자 생성 
         self.user_voice_subscription = self.create_subscription(
-            RobotState,
+            Voice,
             '/recognized_text',
             self.user_voice_callback,
             10
@@ -46,7 +46,7 @@ class RobotTopic(Node):
         self.admin_camera_publisher = self.create_publisher(Image, 'Admin_Manager/camera', 10)
         self.admin_amcl_pose_publisher = self.create_publisher(PoseWithCovarianceStamped, 'Admin_Manager/amcl_pose', 10)
         self.admin_robot_state_publisher = self.create_publisher(RobotState, 'Admin_Manager/robot_state', 10)
-        self.admin_user_voice_publisher = self.create_publisher(RobotState, 'Admin_Manager/recognized_text', 10)
+        self.admin_user_voice_publisher = self.create_publisher(Voice, 'Admin_Manager/recognized_text', 10)
 
         # User_GUI로 퍼블리셔 생성
         self.user_amcl_pose_publisher = self.create_publisher(PoseWithCovarianceStamped, 'User_GUI/amcl_pose', 10)
