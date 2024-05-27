@@ -1,6 +1,4 @@
 from setuptools import find_packages, setup
-import os
-import glob
 
 package_name = 'admin_package'
 
@@ -12,7 +10,6 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        ('share/' + package_name + '/launch' , glob.glob(os.path.join('launch','*.launch.py'))),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -23,9 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'Admin_manager = admin_package.Admin_manager:main',
-            'gui = admin_package.gui:main',
-            'msg = admin_package.msg:main',
+            'camera = admin_package.camera:main',
+            'Admin_Manager = admin_package.Admin_Manager:main',
         ],
     },
 )
