@@ -42,7 +42,7 @@ class RobotService(Node):
         
         elif command == "description":
             self.get_logger().info('Processing description')
-            # self.send_robot_command(command, description)  # Robot_Driving: 제자리 위치
+            self.send_robot_command(command, description)  # Robot_Driving: 제자리 위치
             self.send_robot_command_user(command, description)  # GUI음성: 작품설명..., 또다른 도움이 필요하십니까?
             self.send_voice_start_command('voice_start')  # voice_recog: 음성열기
 
@@ -82,7 +82,6 @@ class RobotService(Node):
 
 
     def send_robot_command_user(self, command: str, description: str = ""):
-        print("NOOOOOOOO")
         if not self.robot_command_client_user.wait_for_service(timeout_sec=5.0):
             self.get_logger().error('Robot_command_user service not available')
             return

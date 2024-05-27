@@ -150,18 +150,23 @@ class Admin_Manager(Node):
             self.get_logger().info("Description command detected!")
             script = self.db_manager.find_script_by_name(self.name)
             self.send_robot_command("description", script)
-            print(script)
 
         elif "안내" in text:
             self.get_logger().info("Guide command detected!")
+
+            keyword_found = None
 
             # 텍스트에서 키워드 추출
             for keyword in keywords:
                 if keyword in text:
                     self.get_logger().info(f"Extracted artwork name: {keyword}")
                     self.send_robot_command("guide", keyword)
+                    keyword_found = True
                     break
-                
+
+            if not keyword_found:
+                self.send_robot_command("comeback")
+
         else:
             self.send_robot_command("comeback")
 
