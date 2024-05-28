@@ -146,11 +146,12 @@ class Admin_Manager(Node):
         text = msg.command
         print(text)
 
-        keywords = ["피라미드", "나폴레옹", "스핑크스", "오벨리스크", "람세스", "이시스"]
+        keywords = ["피라미드", "나폴레옹", "스핑크스", "오벨리스크", "람세스", "오시리스"]
 
         if "설명" in text:
             self.get_logger().info("Description command detected!")
             script = self.db_manager.find_script_by_name(self.name)
+            self.db_manager.insert_event_log(self.name, "description")
             self.send_robot_command("description", script)
 
         elif "안내" in text:
@@ -162,6 +163,7 @@ class Admin_Manager(Node):
             for keyword in keywords:
                 if keyword in text:
                     self.get_logger().info(f"Extracted artwork name: {keyword}")
+                    self.db_manager.insert_event_log(keyword, "guide")
                     self.send_robot_command("guide", keyword)
                     keyword_found = True
                     break
@@ -170,9 +172,9 @@ class Admin_Manager(Node):
                 self.send_robot_command("again")
 
         else:
+            self.db_manager.insert_event_log(self.name, "comeback")
             self.send_robot_command("comeback")
-
-
+            
     def send_robot_command(self, command: str, description: str = ""):
         if not self.robot_command_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().error('Robot_command service not available')
