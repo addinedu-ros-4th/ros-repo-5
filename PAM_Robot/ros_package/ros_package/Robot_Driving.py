@@ -62,18 +62,18 @@ class RobotDriver(Node):
             ((15.0, 0.0, 0.0), (0.0, 0.0, 0.0)),  # 여덟 번째 목표 지점
         ]
 
-        self.goal_poses_art = ['피라미드','2','나폴레옹','스핑크스','오벨리스크','람세스','7','이시스'] # 작품위치에 따른 작품명
+        self.goal_poses_art = ['피라미드','2','나폴레옹','스핑크스','오벨리스크','람세스','7','오시리스'] # 작품위치에 따른 작품명
         self.current_art = None
 
         self.point = [
-            ((0,0,0),(0,0,0,0)), # 첫번째 목표 지점의 작품설명위치
-            ((0,0,0),(0,0,0,0)), # 두번째 목표 지점의 작품설명위치
-            ((0,0,0),(0,0,0,0)), # 세번째 목표 지점의 작품설명위치
-            ((0,0,0),(0,0,0,0)), # 네번째 목표 지점의 작품설명위치
+            ((3,2,0),(0,0,0,0)), # 첫번째 목표 지점의 작품설명위치
             ((0,0,0),(0,0,0,0)), # 다섯번째 목표 지점의 작품설명위치
-            ((0,0,0),(0,0,0,0)), # 여섯번째 목표 지점의 작품설명위치
+            ((4.6,1.8,0),(0,0,0,0)), # 두번째 목표 지점의 작품설명위치
+            ((7.5,2,0),(0,0,0,0)), # 세번째 목표 지점의 작품설명위치
+            ((9,1.2,0),(0,0,0,0)), # 네번째 목표 지점의 작품설명위치
+            ((12,1.6,0),(0,0,0,0)), # 여섯번째 목표 지점의 작품설명위치
             ((0,0,0),(0,0,0,0)), # 일곱번째 목표 지점의 작품설명위치
-            ((0,0,0),(0,0,0,0)), # 여덟번째 목표 지점의 작품설명위치
+            ((13.6,1.2,0),(0,0,0,0)), # 여덟번째 목표 지점의 작품설명위치
         ]
 
 
@@ -127,7 +127,11 @@ class RobotDriver(Node):
                     
                     # if result == TaskResult.SUCCEEDED:
                     #     self.get_logger().info('Goal succeeded at ({}, {}, {})!'.format(goal_x, goal_y, goal_z))
-                    self.current_state = 'arrive at {}'.format(self.goal_poses_art[self.index])
+                    if self.index in [1, 6]:
+                        self.current_state = 'Arrive at {}'.format(self.goal_poses_art[self.index])
+                    else:
+                        self.current_state = 'arrive at {}'.format(self.goal_poses_art[self.index])
+
                     self.current_art = self.goal_poses_art[self.index]
 
                     # elif result == TaskResult.CANCELED:
@@ -193,7 +197,6 @@ class RobotDriver(Node):
             response.success = True
             response.message = 'comeback'
 
-            self.patrolling = True
             self.current_state = 'Returning to Patrol'
 
             self.comeback_to_patrol()
@@ -321,10 +324,8 @@ class RobotDriver(Node):
         else:
             self.forward_patrol = False
 
-        self.patrolling = True
         self.command_received = False
-
-        print("NOOOOO")
+        self.patrolling = True
 
 
 
