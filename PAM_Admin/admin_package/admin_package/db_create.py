@@ -94,3 +94,8 @@ if __name__ == "__main__":
 
     # 데이터 삽입
     db_manager.insert_script('피라미드', '피라미드는 고대 이집트의 거대한 무덤입니다.')
+    db_manager.insert_script('나폴레옹', '나폴레옹은 19세기 프랑스 황제로, 유럽을 정복한 군사 지도자입니다.')
+    db_manager.insert_script('스핑크스', '스핑크스는 고대 이집트의 사자 몸에 사람 머리 석상입니다.')
+    db_manager.insert_script('오벨리스크', '오벨리스크는 고대 이집트의 뾰족한 돌기둥 기념물입니다.')
+    db_manager.insert_script('람세스', '람세스는 고대 이집트의 파라오입니다.')
+    db_manager.insert_script('오시리스', '오시리스는 고대 이집트 신화의 지하의 왕입니다.')
