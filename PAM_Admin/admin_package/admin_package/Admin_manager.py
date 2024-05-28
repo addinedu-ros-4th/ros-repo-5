@@ -118,9 +118,9 @@ class Admin_Manager(Node):
         self.get_logger().info(f'{self.robot_state}')
         if 'arrive' in self.robot_state:
             self.arrive = True
-            self.name = self.robot_state[len("arrive at"):].strip()
+            self.name = self.robot_state[len("not item at"):].strip()
         elif 'Arrive' in self.robot_state:
-            self.name = self.robot_state[len("Arrive at"):].strip()
+            self.name = self.robot_state[len("guide at"):].strip()
         else:
             self.arrive = False
             self.send_state = False
