@@ -4,7 +4,7 @@ from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from sensor_msgs.msg import Image
 from ros_package_msgs.msg import RobotState
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QTextEdit
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QTextEdit, QPushButton, QComboBox, QDateEdit, QVBoxLayout, QTableWidget, QTableWidgetItem
 from PyQt6.QtGui import QPixmap, QImage
 from cv_bridge import CvBridge
 import cv2
@@ -12,6 +12,7 @@ from PyQt6 import uic
 from threading import Thread
 from PyQt6.QtCore import pyqtSignal, QObject
 from ros_package_msgs.srv import CommandString 
+from .DB_Manager import DatabaseManager
 
 class Ros2PyQtApp(QMainWindow):
     
@@ -19,7 +20,7 @@ class Ros2PyQtApp(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        uic.loadUi("/home/jongchanjang/my_mobile/src/admin_package/admin_package/gui.ui", self)
+        uic.loadUi("./gui.ui", self)
         self.setWindowTitle("ROS2 PyQt6 Image Viewer")
         self.update_state_signal.connect(self.setState)  # 신호와 슬롯 연결
 
@@ -31,7 +32,14 @@ class Ros2PyQtApp(QMainWindow):
         self.detect_array = []
 
         self.robot_command_client = self.node.create_client(CommandString, '/robot_command')
+        #DB연결
+        self.db_manager = DatabaseManager(host="localhost", user="root")
+        #search 버튼 클릭
+        self.search_btn.clicked.connect(self.search_event_logs)
 
+        # QDateEdit 설정
+        self.dateStart.setDisplayFormat("yyyy-MM-dd")
+        self.dateEnd.setDisplayFormat("yyyy-MM-dd")
         
     def setState(self):
         if self.person_flag == True:
@@ -97,6 +105,20 @@ class Ros2PyQtApp(QMainWindow):
                 self.node.get_logger().error('Failed to execute robot command (Admin to Robot): %s' % response.message)
         except Exception as e:
             self.node.get_logger().error('Service call failed: %s' % str(e))
+
+    def search_event_logs(self):
+        service_name = self.Service.currentText()
+        object_name = self.Object.currentText()
+        start_date = self.dateStart.date().toString("yyyy-MM-dd")
+        end_date = self.dateEnd.date().toString("yyyy-MM-dd")
+
+        logs = self.db_manager.search_event_logs(service_name, object_name, start_date, end_date)
+        self.dbTable.setRowCount(0)
+
+        for row_number, row_data in enumerate(logs):
+            self.dbTable.insertRow(row_number)
+            for column_number, data in enumerate(row_data):
+                self.dbTable.setItem(row_number, column_number, QTableWidgetItem(str(data)))
             
             
 class ImageSubscriber(Node):

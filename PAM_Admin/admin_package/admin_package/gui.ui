@@ -18,33 +18,36 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>10</y>
+      <y>20</y>
       <width>511</width>
       <height>311</height>
      </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(58, 134, 255);
+	background-color: white;
+	border: 2px solid rgb(58, 134, 255);
+	border-radius: 20px;</string>
     </property>
     <property name="text">
      <string/>
     </property>
    </widget>
-   <widget class="QTextEdit" name="log_textEdit">
-    <property name="geometry">
-     <rect>
-      <x>540</x>
-      <y>270</y>
-      <width>391</width>
-      <height>201</height>
-     </rect>
-    </property>
-   </widget>
    <widget class="QPushButton" name="send_msg_btn">
     <property name="geometry">
      <rect>
-      <x>640</x>
-      <y>140</y>
+      <x>840</x>
+      <y>70</y>
       <width>89</width>
-      <height>25</height>
+      <height>61</height>
      </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QPushButton{
+	color: white;
+	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0.857143, y2:0.857955, stop:0 rgba(10, 242, 251, 255), stop:1 rgba(224, 6, 159, 255));
+	border-radius: 20px;
+}</string>
     </property>
     <property name="text">
      <string>Send Msg</string>
@@ -59,6 +62,12 @@
       <height>31</height>
      </rect>
     </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(58, 134, 255);
+	background-color: white;
+	border: 2px solid rgb(58, 134, 255);
+	border-radius: 20px;</string>
+    </property>
    </widget>
    <widget class="QLabel" name="label">
     <property name="geometry">
@@ -69,6 +78,9 @@
       <height>31</height>
      </rect>
     </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
     <property name="text">
      <string>Current State :</string>
     </property>
@@ -77,14 +89,269 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>390</y>
+      <y>354</y>
       <width>511</width>
-      <height>245</height>
+      <height>281</height>
      </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(58, 134, 255);
+	background-color: white;
+	border: 2px solid rgb(58, 134, 255);
+	border-radius: 20px;</string>
     </property>
     <property name="text">
      <string/>
     </property>
+   </widget>
+   <widget class="QTableWidget" name="dbTable">
+    <property name="geometry">
+     <rect>
+      <x>540</x>
+      <y>260</y>
+      <width>401</width>
+      <height>391</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(58, 134, 255);
+	background-color: white;
+	border: 2px solid rgb(58, 134, 255);
+	border-radius: 20px;</string>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::NoFrame</enum>
+    </property>
+    <column>
+     <property name="text">
+      <string>ID</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>Date</string>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>10</pointsize>
+      </font>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>Object</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>Service</string>
+     </property>
+    </column>
+   </widget>
+   <widget class="QDateEdit" name="dateStart">
+    <property name="geometry">
+     <rect>
+      <x>550</x>
+      <y>110</y>
+      <width>111</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(58, 134, 255);
+	background-color: white;
+	border: 2px solid rgb(58, 134, 255);
+	border-radius: 20px;</string>
+    </property>
+    <property name="displayFormat">
+     <string>yyyy/mm/dd</string>
+    </property>
+    <property name="calendarPopup">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QDateEdit" name="dateEnd">
+    <property name="geometry">
+     <rect>
+      <x>710</x>
+      <y>110</y>
+      <width>111</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(58, 134, 255);
+	background-color: white;
+	border: 2px solid rgb(58, 134, 255);
+	border-radius: 20px;</string>
+    </property>
+    <property name="displayFormat">
+     <string>yyyy/mm/dd</string>
+    </property>
+    <property name="calendarPopup">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="end">
+    <property name="geometry">
+     <rect>
+      <x>720</x>
+      <y>80</y>
+      <width>67</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Date_End</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="start">
+    <property name="geometry">
+     <rect>
+      <x>560</x>
+      <y>80</y>
+      <width>81</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Date_Start</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="search_btn">
+    <property name="geometry">
+     <rect>
+      <x>840</x>
+      <y>160</y>
+      <width>91</width>
+      <height>81</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QPushButton{
+	color: white;
+	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0.857143, y2:0.857955, stop:0 rgba(10, 242, 251, 255), stop:1 rgba(224, 6, 159, 255));
+	border-radius: 20px;
+}</string>
+    </property>
+    <property name="text">
+     <string>SEARCH</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="start_2">
+    <property name="geometry">
+     <rect>
+      <x>550</x>
+      <y>180</y>
+      <width>81</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Object</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="start_3">
+    <property name="geometry">
+     <rect>
+      <x>710</x>
+      <y>180</y>
+      <width>81</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Service</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="Object">
+    <property name="geometry">
+     <rect>
+      <x>565</x>
+      <y>210</y>
+      <width>91</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(58, 134, 255);
+	background-color: white;
+	border: 2px solid rgb(58, 134, 255);
+	border-radius: 20px;</string>
+    </property>
+    <item>
+     <property name="text">
+      <string>피라미드</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>나폴레옹</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>스핑크스</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>오벨리스크</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>람세스</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>이시스</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QComboBox" name="Service">
+    <property name="geometry">
+     <rect>
+      <x>725</x>
+      <y>210</y>
+      <width>91</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(58, 134, 255);
+	background-color: white;
+	border: 2px solid rgb(58, 134, 255);
+	border-radius: 20px;</string>
+    </property>
+    <item>
+     <property name="text">
+      <string>guide</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>comeback</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>description</string>
+     </property>
+    </item>
    </widget>
   </widget>
  </widget>

@@ -7,7 +7,7 @@ class DatabaseCreate:
         self.db_name = "ros_final"
         self.cur = None
         self.conn = None
-        self.password = "1234"
+        self.password = "your_password"
 
     def connect_database(self, db_name=None):
         if db_name is None:
@@ -58,9 +58,21 @@ class DatabaseCreate:
                 )
             """)
             print("Table 'Scripts' created successfully.")
+
+            self.cur.execute("""
+                CREATE TABLE IF NOT EXISTS EventLog (
+                    ID INT AUTO_INCREMENT PRIMARY KEY,
+                    Date DATETIME,
+                    Object VARCHAR(50),
+                    Service VARCHAR(50)
+                )
+            """)
+            print("Table 'EventLog' created successfully.")
+
         except mysql.connector.Error as err:
             print("Failed creating table: {}".format(err))
             exit(1)
+
         finally:
             if self.cur:
                 self.cur.close()

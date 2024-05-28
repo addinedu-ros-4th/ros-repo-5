@@ -1,5 +1,5 @@
 import mysql.connector
-import pandas as pd
+from datetime import datetime
 
 class DatabaseManager:
     def __init__(self, host, user):
@@ -8,7 +8,7 @@ class DatabaseManager:
         self.db_name = "ros_final"
         self.cur = None
         self.conn = None
-        self.password = "1234"
+        self.password = "your_password"
 
 
     def connect_database(self, db_name=None):
@@ -37,6 +37,7 @@ class DatabaseManager:
 
     
     def find_script_by_name(self, name):
+        self.connect_database() 
         try:
             query = "SELECT script FROM Scripts WHERE name = %s"
             self.cur.execute(query, (name,))
@@ -48,3 +49,23 @@ class DatabaseManager:
         except mysql.connector.Error as err:
             print("Error:", err)
             return None
+
+    def insert_event_log(self, object_name, service_name):
+        self.connect_database() 
+        try:
+            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            query = "INSERT INTO EventLog (Date, Object, Service) VALUES (%s, %s, %s)"
+            self.cur.execute(query, (current_time, object_name, service_name))
+            self.conn.commit()
+            print("Event log inserted successfully.")
+        except mysql.connector.Error as err:
+            print("Failed inserting event log:", err)
+
+    def search_event_logs(self, service_name, object_name, start_date, end_date):
+        self.connect_database() 
+        query = """
+        SELECT * FROM EventLog 
+        WHERE Service = %s AND Object = %s AND Date BETWEEN %s AND %s
+        """
+        self.cur.execute(query, (service_name, object_name, start_date, end_date))
+        return self.cur.fetchall()

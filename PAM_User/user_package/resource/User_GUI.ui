@@ -22,6 +22,12 @@
      <height>391</height>
     </rect>
    </property>
+   <property name="styleSheet">
+    <string notr="true">color: rgb(58, 134, 255);
+	background-color: white;
+	border: 2px solid rgb(58, 134, 255);
+	border-radius: 20px;</string>
+   </property>
    <property name="text">
     <string>맵+위치정보</string>
    </property>
@@ -35,7 +41,7 @@
      <x>500</x>
      <y>50</y>
      <width>301</width>
-     <height>41</height>
+     <height>51</height>
     </rect>
    </property>
    <property name="font">
@@ -44,6 +50,11 @@
      <weight>75</weight>
      <bold>true</bold>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">	color: white;
+	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0.857143, y2:0.857955, stop:0 rgba(10, 242, 251, 255), stop:1 rgba(224, 6, 159, 255));
+	border-radius: 20px;</string>
    </property>
    <property name="lineWidth">
     <number>0</number>
@@ -71,6 +82,12 @@
      <bold>true</bold>
     </font>
    </property>
+   <property name="styleSheet">
+    <string notr="true">color: rgb(58, 134, 255);
+	background-color: white;
+	border: 2px solid rgb(58, 134, 255);
+	border-radius: 20px;</string>
+   </property>
    <property name="text">
     <string>작품을 설명해 드릴까요?</string>
    </property>
@@ -81,10 +98,10 @@
   <widget class="QLabel" name="Art_name">
    <property name="geometry">
     <rect>
-     <x>0</x>
-     <y>410</y>
-     <width>451</width>
-     <height>121</height>
+     <x>10</x>
+     <y>440</y>
+     <width>431</width>
+     <height>81</height>
     </rect>
    </property>
    <property name="font">
@@ -93,6 +110,12 @@
      <weight>75</weight>
      <bold>true</bold>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color: rgb(58, 134, 255);
+	background-color: white;
+	border: 2px solid rgb(58, 134, 255);
+	border-radius: 20px;</string>
    </property>
    <property name="text">
     <string>1.피라미드     2.나폴레오    3.스핑크스   4.오벨리스크</string>
@@ -116,6 +139,12 @@
      <weight>75</weight>
      <bold>true</bold>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color: rgb(58, 134, 255);
+	background-color: white;
+	border: 2px solid rgb(58, 134, 255);
+	border-radius: 20px;</string>
    </property>
    <property name="text">
     <string>어느 작품으로 길안내 해드릴까요?</string>
