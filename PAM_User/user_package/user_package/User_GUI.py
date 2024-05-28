@@ -134,6 +134,13 @@ class UserGUI(Node):
 
             self.play_tts(request.description)
 
+        elif request.command == "again":
+            self.get_logger().info('Processing again')
+            response.success = True
+            response.message = 'again'
+
+            self.play_tts('작품이름을 넣어서 다시 한번 말씀해주세요')
+
         elif request.command == "comeback":
             self.get_logger().info('Processing comeback')
             response.success = True

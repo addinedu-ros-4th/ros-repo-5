@@ -50,8 +50,13 @@ class RobotService(Node):
             self.get_logger().info('Processing guide')
             self.send_robot_command_user(command, description)  # GUI음성: ~로 길안내 해드리겠습니다.
             self.send_robot_command(command, description)  # Robot_Driving: 작품으로 길안내
-            self.send_robot_command_user_2(command, description)  # GUI음성: 또다른 도움이 필요하십니까?
-            self.send_voice_start_command('voice_start')  # voice_recog: 음성열기
+            self.send_robot_command_user("re", "또다른 도움이 필요하십니까?")  # GUI음성: 또다른 도움이 필요하십니까?
+            self.send_voice_start_command('voice_start')  # voice_recog: 음성열기\
+
+        elif command == "again":
+            self.get_logger().info('Processing comeback')
+            self.send_robot_command_user(command, description)  # GUI음성: 작품이름 넣어서 다시 한번 말씀해주세요
+            self.send_voice_start_command('voice_start')  # voice_recog: 음성열기\
 
         elif command == "comeback":
             self.get_logger().info('Processing comeback')
@@ -89,25 +94,6 @@ class RobotService(Node):
         request = CommandString.Request()
         request.command = command
         request.description = description
-
-        future = self.robot_command_client_user.call(request)
-
-        response = future
-
-        if response.success:
-            self.get_logger().info('Robot_command executed successfully (Robot to User): %s' % response.message)
-        else:
-            self.get_logger().error('Failed to execute User_command (Robot to User) : %s' % response.message)
-
-
-    def send_robot_command_user_2(self, command: str, description: str = ""):
-        if not self.robot_command_client_user.wait_for_service(timeout_sec=5.0):
-            self.get_logger().error('Robot_command service not available')
-            return
-
-        request = CommandString.Request()
-        request.command = "re"
-        request.description = "또다른 도움이 필요하십니까?"
 
         future = self.robot_command_client_user.call(request)
 

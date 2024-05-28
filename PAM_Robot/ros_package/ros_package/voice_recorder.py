@@ -6,7 +6,7 @@ import os
 import time
 
 class VoiceRecorder:
-    def __init__(self, threshold_energy=200000):
+    def __init__(self, threshold_energy=100000):
         self.FORMAT = pyaudio.paInt16
         self.CHANNELS = 1
         self.RATE = 16000

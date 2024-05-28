@@ -187,6 +187,8 @@ class RobotDriver(Node):
             response.success = True
             response.message = 'comeback'
 
+            self.current_state = 'comeback_to_patrol'
+
             self.comeback_to_patrol()
 
             self.patrolling = True
@@ -283,12 +285,15 @@ class RobotDriver(Node):
         # elif result == TaskResult.FAILED:
         #     self.get_logger().info('Navigation to description location failed!')
 
-        self.current_state = 'Human Detection'
+        self.current_state = 'Arrive at {}'.format(description)
 
 
     def comeback_to_patrol(self):
 
-        self.index = self.art_index + 1
+        if self.art_index in [0, 1, 2, 3]:
+            self.index = self.art_index + 1
+        else:
+            self.index = self.art_index - 1
 
         # 가장 가까운 웨이포인트로 이동
         # goal_x, goal_y, goal_z = waypoint[0], waypoint[1], waypoint[2]

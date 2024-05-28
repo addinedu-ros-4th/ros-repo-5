@@ -119,6 +119,8 @@ class Admin_Manager(Node):
         if 'arrive' in self.robot_state:
             self.arrive = True
             self.name = self.robot_state[len("arrive at"):].strip()
+        elif 'Arrive' in self.robot_state:
+            self.name = self.robot_state[len("Arrive at"):].strip()
         else:
             self.arrive = False
             self.send_state = False
@@ -129,10 +131,10 @@ class Admin_Manager(Node):
         # self.get_logger().info("Checking state")
 
         if self.arrive:
-            self.get_logger().info("arrive is true")
+            # self.get_logger().info("arrive is true")
 
             if detect_people(self.model, self.cv_img) and self.send_state == False:
-                self.get_logger().info("Requrest to robot : HD")
+                # self.get_logger().info("Requrest to robot : HD")
 
                 self.send_robot_command("human_detect")
                 self.send_state = True
@@ -165,7 +167,7 @@ class Admin_Manager(Node):
                     break
 
             if not keyword_found:
-                self.send_robot_command("comeback")
+                self.send_robot_command("again")
 
         else:
             self.send_robot_command("comeback")
