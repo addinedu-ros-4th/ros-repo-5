@@ -79,114 +79,104 @@ class RobotDriver(Node):
 
         while rp.ok():
             if self.patrolling and not self.command_received:
-                    if not self.patrolling:
-                        break
+                if not self.patrolling:
+                    break
 
-                    self.current_state = 'Patrolling'
-                    time.sleep(3)
+                self.current_state = 'Patrolling'
+                time.sleep(3)
 
-                    # 인덱스가 리스트 범위를 벗어나지 않도록 체크
-                    if self.index < 0:
-                        self.index = 0
-                        self.forward_patrol = True
-                    elif self.index >= len(self.goal_poses):
-                        self.index = len(self.goal_poses) - 1
-                        self.forward_patrol = False
+                # 인덱스가 리스트 범위를 벗어나지 않도록 체크
+                if self.index < 0:
+                    self.index = 0
+                    self.forward_patrol = True
+                elif self.index >= len(self.goal_poses):
+                    self.index = len(self.goal_poses) - 1
+                    self.forward_patrol = False
 
-                    goal_pose, orientation = self.goal_poses[self.index]
+                goal_pose, orientation = self.goal_poses[self.index]
 
-                    goal_x, goal_y, goal_z = goal_pose
-                    goal_orientation_x, goal_orientation_y, goal_orientation_z = orientation
+                goal_x, goal_y, goal_z = goal_pose
+                goal_orientation_x, goal_orientation_y, goal_orientation_z = orientation
 
-                    goal_pose_msg = PoseStamped()
-                    goal_pose_msg.header.frame_id = 'map'
-                    goal_pose_msg.header.stamp = self.get_clock().now().to_msg()
-                    goal_pose_msg.pose.position.x = goal_x
-                    goal_pose_msg.pose.position.y = goal_y
-                    goal_pose_msg.pose.position.z = goal_z
-                    goal_pose_msg.pose.orientation.x = goal_orientation_x
-                    goal_pose_msg.pose.orientation.y = goal_orientation_y
-                    goal_pose_msg.pose.orientation.z = goal_orientation_z
-                    goal_pose_msg.pose.orientation.w = 1.0
+                goal_pose_msg = PoseStamped()
+                goal_pose_msg.header.frame_id = 'map'
+                goal_pose_msg.header.stamp = self.get_clock().now().to_msg()
+                goal_pose_msg.pose.position.x = goal_x
+                goal_pose_msg.pose.position.y = goal_y
+                goal_pose_msg.pose.position.z = goal_z
+                goal_pose_msg.pose.orientation.x = goal_orientation_x
+                goal_pose_msg.pose.orientation.y = goal_orientation_y
+                goal_pose_msg.pose.orientation.z = goal_orientation_z
+                goal_pose_msg.pose.orientation.w = 1.0
 
 
-                    # self.get_logger().info('Navigating to goal: ({}, {}, {})'.format(goal_x, goal_y, goal_z))
+                # self.get_logger().info('Navigating to goal: ({}, {}, {})'.format(goal_x, goal_y, goal_z))
 
-                    # # 목표 위치로 이동
-                    # self.navigator.goToPose(goal_pose_msg)
+                # # 목표 위치로 이동
+                # self.navigator.goToPose(goal_pose_msg)
 
-                    # # 목표 지점에 도착하기를 기다림
-                    # while not self.navigator.isTaskComplete() and not self.command_received:
-                    #     time.sleep(0.1)
+                # # 목표 지점에 도착하기를 기다림
+                # while not self.navigator.isTaskComplete() and not self.command_received:
+                #     time.sleep(0.1)
 
-                    # if self.command_received:
-                    #     self.navigator.cancelTask()
-                    #     break
-
-                    # result = self.navigator.getResult()
+                # result = self.navigator.getResult()
                     
-                    # if result == TaskResult.SUCCEEDED:
-                    #     self.get_logger().info('Goal succeeded at ({}, {}, {})!'.format(goal_x, goal_y, goal_z))
-                    if self.index in [1, 6]:
-                        self.current_state = 'Arrive at {}'.format(self.goal_poses_art[self.index])
-                    else:
-                        self.current_state = 'arrive at {}'.format(self.goal_poses_art[self.index])
+                # if result == TaskResult.SUCCEEDED:
+                #     self.get_logger().info('Goal succeeded at ({}, {}, {})!'.format(goal_x, goal_y, goal_z))
+                if self.index in [1, 6]:
+                    self.current_state = 'Arrive at {}'.format(self.goal_poses_art[self.index])
+                else:
+                    self.current_state = 'arrive at {}'.format(self.goal_poses_art[self.index])
 
-                    self.current_art = self.goal_poses_art[self.index]
+                self.current_art = self.goal_poses_art[self.index]
 
-                    # elif result == TaskResult.CANCELED:
-                    #     self.get_logger().info('Goal was canceled at ({}, {}, {})!'.format(goal_x, goal_y, goal_z))
+                # elif result == TaskResult.CANCELED:
+                #     self.get_logger().info('Goal was canceled at ({}, {}, {})!'.format(goal_x, goal_y, goal_z))
 
-                    # elif result == TaskResult.FAILED:
-                    #     self.get_logger().info('Goal failed at ({}, {}, {})!'.format(goal_x, goal_y, goal_z))
+                # elif result == TaskResult.FAILED:
+                #     self.get_logger().info('Goal failed at ({}, {}, {})!'.format(goal_x, goal_y, goal_z))
 
-                    # 현재 목표 지점 인덱스 업데이트
-                    if self.forward_patrol:
-                        self.index += 1
-                    else:
-                        self.index -= 1
+                # 현재 목표 지점 인덱스 업데이트
+                if self.forward_patrol:
+                    self.index += 1
+                else:
+                    self.index -= 1
 
-                    # 목표 지점 도착 후 3초 대기
-                    time.sleep(3)
-
-                    # 2번과 7번 웨이포인트에서는 커맨드를 무시하고 계속 진행
-                    if self.index not in [1, 6] and self.command_received:
-                        break
+                # 목표 지점 도착 후 3초 대기
+                time.sleep(3)
 
 
     def robot_command_callback(self, request, response):
         self.get_logger().info('Robot Command Server started')
 
-        self.command_received = True
-        
         if request.command == "human_detect":
             self.get_logger().info('Received human_detect')
             response.success = True
-            response.message = 'human_detect'
+            response.message = 'human_detect'   
 
+            self.command_received = True
             self.patrolling = False
+
             self.current_state = 'Human Detection'
 
             self.handle_human_detect()
- 
+
 
         elif request.command == "description":
             self.get_logger().info('Received description')
             response.success = True
             response.message = 'description'
 
-            self.patrolling = False
             self.current_state = 'Description'
 
             self.handle_description()
-            
+
 
         elif request.command == "guide":
             self.get_logger().info('Received guide')
             response.success = True
             response.message = 'guide'
 
-            self.patrolling = False
             self.current_state = 'Guiding'
 
             self.handle_guide(request.description)
@@ -197,9 +187,10 @@ class RobotDriver(Node):
             response.success = True
             response.message = 'comeback'
 
-            self.current_state = 'Returning to Patrol'
-
             self.comeback_to_patrol()
+
+            self.patrolling = True
+            self.command_received = False
 
         else:
             self.get_logger().error('Received Unknown')
@@ -323,10 +314,6 @@ class RobotDriver(Node):
             self.forward_patrol = True
         else:
             self.forward_patrol = False
-
-        self.command_received = False
-        self.patrolling = True
-
 
 
 def main(args=None):
