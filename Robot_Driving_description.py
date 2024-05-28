@@ -37,24 +37,24 @@ class RobotDriver(Node):
 
         # 순찰 경로 정의
         self.route_forward = [
-            (2.0, 0.0, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (6.0, 0.0, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (6.0, -6.0, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (2.0, -6.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (2.0, -12.0, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (6.0, -12.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (6.0, -18.0, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (0.0, -18.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
+            (0.2, 0.0, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (0.2, 1.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
+            (1.1, 0.85, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (1.1, -0.1, 0.0, *self.euler_to_quaternion(math.radians(-90))),
+            (1.1, 0.0, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (2.3, 0.0, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (2.25, 0.8, 0.0, *self.euler_to_quaternion(math.radians(90))),
+            (2.25, 0.7, 0.0, *self.euler_to_quaternion(math.radians(180))),
         ]
 
         self.route_reverse = [
-            (6.0, -18.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (6.0, -12.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (2.0, -12.0, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (2.0, -6.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (6.0, -6.0, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (6.0, 0.0, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (2.0, 0.0, 0.0, *self.euler_to_quaternion(math.radians(-90))),
+            (2.25, -0.1, 0.0, *self.euler_to_quaternion(math.radians(-90))),
+            (0.85, 0.0, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (1.0, 0.8, 0.0, *self.euler_to_quaternion(math.radians(90))),
+            (1.0, 0.7, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (-0.05, 0.7, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (0.2, -0.1, 0.0, *self.euler_to_quaternion(math.radians(90))),
+            (0.2, 0.0, 0.0, *self.euler_to_quaternion(math.radians(0))),
         ]
         
         self.description_point = [
@@ -62,10 +62,8 @@ class RobotDriver(Node):
             (4.0, -4.25, 0.0, *self.euler_to_quaternion(math.radians(90))),
             (3.0, -8.0, 0.0, *self.euler_to_quaternion(math.radians(-90))),
             (3.0, -10.5, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (4.0, -14.0, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (4.0, -16.0, 0.0, *self.euler_to_quaternion(math.radians(180))),
         ]
-    
+        
         self.set_initial_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
 
         self.patrol_work()
@@ -182,4 +180,59 @@ class RobotDriver(Node):
             
 
         elif request.command == "guide":
-            self.get_logger
+            self.get_logger().info('Received guide')
+            response.success = True
+            response.message = 'guide'
+
+            self.patrolling = False
+            self.current_state = 'Guiding'
+
+            self.handle_guide(request.description)
+                        
+        elif request.command == "comeback":
+            self.get_logger().info('Received comeback')
+            response.success = True
+            response.message = 'comeback'
+
+            self.patrolling = True
+            self.current_state = 'Returning to Patrol'
+
+            self.comeback_to_patrol()
+
+        else:
+            self.get_logger().error('Received Unknown')
+            response.success = False
+            response.message = 'Unknown'
+
+        return response
+    
+
+    def handle_human_detect(self):
+        self.get_logger().info('human_detect.')
+        time.sleep(10)
+        print('ok')
+        
+    def handle_description(self):
+        self.get_logger().info('Robot stopped for description.')
+
+    def handle_guide(self, description):
+        self.get_logger().info('Robot guiding.')
+
+    def comeback_to_patrol(self):
+        self.patrolling = True
+        self.current_state = 'Patrolling'
+        # self.patrol_work()
+
+
+def main(args=None):
+    rp.init(args=args)
+
+    robot_driving = RobotDriver()
+
+    rp.spin(robot_driving)
+
+    robot_driving.destroy_node()
+    rp.shutdown()
+
+if __name__ == '__main__':
+    main()
