@@ -116,10 +116,10 @@ class Admin_Manager(Node):
         # self.get_logger().info('Received /robot_state')
         self.robot_state = msg.command  # 메시지 구조에 맞게 수정 필요
         self.get_logger().info(f'{self.robot_state}')
-        if 'arrive' in self.robot_state:
+        if 'not item' in self.robot_state:
             self.arrive = True
             self.name = self.robot_state[len("not item at"):].strip()
-        elif 'Arrive' in self.robot_state:
+        elif 'guide' in self.robot_state:
             self.name = self.robot_state[len("guide at"):].strip()
         else:
             self.arrive = False
