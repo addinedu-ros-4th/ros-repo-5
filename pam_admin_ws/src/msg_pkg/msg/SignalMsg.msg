@@ -1,1 +1,0 @@
-string recv_msg
