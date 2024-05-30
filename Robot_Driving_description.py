@@ -7,8 +7,8 @@ from ros_package_msgs.msg import RobotState
 from geometry_msgs.msg import PoseStamped
 import threading
 import time , asyncio
-from tf_transformations import quaternion_from_euler
-import math
+import routes
+
 
 class RobotDriver(Node):
     def __init__(self):
@@ -28,6 +28,7 @@ class RobotDriver(Node):
         self.current_state = 'arrive'
         self.patrolling = True
         self.command_received = False
+        self.current_point = 0
 
         # 순찰 방향을 위한 플래그
         self.forward_patrol = True
@@ -36,106 +37,22 @@ class RobotDriver(Node):
         self.state_check_timer = self.create_timer(1.0, self.publish_robot_state)
 
         # 순찰 경로 정의
-        self.route_forward = [
-            (0.2, 0.0, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (0.1, 0.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (0.1 , 0.4, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (0.1 , 0.3, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (0.4, 0.3, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (0.3, 0.3, 0.0, *self.euler_to_quaternion(math.radians(-135))),
-            (0.3, 0.3, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (0.0 , 0.3, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (0.1 , 0.3, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            
-            (0.1, 0.8, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (0.1, 0.7, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            
-            (1.1, 0.7, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (1.0, 0.7, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (1.0, 0.3, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (1.0, 0.4, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (1.5, 0.4, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (1.4, 0.4, 0.0, *self.euler_to_quaternion(math.radians(135))),
-            (1.4, 0.4, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (1.1, 0.4, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (1.2, 0.4, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            
-            (1.2, -0.1, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (1.2, 0.0, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (1.2, 0.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (1.2, 0.4, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (1.2, 0.3, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (0.9 ,0.3, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (0.8 ,0.3, 0.0, *self.euler_to_quaternion(math.radians(-45))),
-            (0.8 ,0.3, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (1.2, 0.3, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (1.1, 0.3, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (1.1, -0.1, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (1.1, 0.0, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            
-            (2.3, 0.0, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (2.2, 0.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            
-            (2.2, 0.8, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (2.2, 0.7, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (2.2, 0.7, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (2.2 ,0.3, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (2.2 ,0.4, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (1.6 ,0.4, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (1.7 ,0.4, 0.0, *self.euler_to_quaternion(math.radians(45))),
-            (1.7 ,0.4, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (2.3, 0.4, 0.0, *self.euler_to_quaternion(math.radians(0))),
-        ]
+        self.route_forward = routes.route_forward
 
-        self.route_reverse = [
-            (2.2, -0.1, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (2.2, 0.0, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            
-            (1.1, 0.0, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (1.2, 0.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (1.2, 0.4, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (1.2, 0.3, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (0.9 ,0.3, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (0.8 ,0.3, 0.0, *self.euler_to_quaternion(math.radians(-45))),
-            (0.8 ,0.3, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (1.1, 0.3, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (1.0, 0.3, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            
-            (1.0, 0.8, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (1.0, 0.7, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (1.0, 0.7, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (1.0, 0.3, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (1.0, 0.4, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (1.5, 0.4, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (1.4, 0.4, 0.0, *self.euler_to_quaternion(math.radians(135))),
-            (1.4, 0.4, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (1.1, 0.4, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (1.0, 0.4, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (1.0, 0.8, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (1.0, 0.7, 0.0, *self.euler_to_quaternion(math.radians(180))),
-
-            (0.0, 0.7, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (0.1, 0.7, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            
-            (0.1, -0.1, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (0.1, 0.0, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            
-            
-        ]
+        self.route_reverse = routes.route_reverse
         
-        self.description_point = [
-            (4.0, -1.5, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (4.0, -4.25, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (3.0, -8.0, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (3.0, -10.5, 0.0, *self.euler_to_quaternion(math.radians(90))),
-        ]
+        self.route_forward_segments = routes.route_forward_segments
+        
+        self.route_reverse_segments = routes.route_reverse_segments
+        
+        self.route_forward_description = routes.route_forward_description
+
+        self.route_resverse_description = routes.route_forward_description
+        
         
         self.set_initial_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
 
         self.patrol_work()
-
-    def euler_to_quaternion(self, yaw, pitch=0.0, roll=0.0):
-        return quaternion_from_euler(roll, pitch, yaw)
     
     def set_goal_pose(self, x, y, z, qx, qy, qz, qw):
         goal_pose = PoseStamped()
@@ -163,6 +80,36 @@ class RobotDriver(Node):
         initial_pose.pose.orientation.w = qw
         self.navigator.setInitialPose(initial_pose)
 
+    def go_to_1(self):
+        self.follow_route_segment(0)
+
+    def follow_route_segment(self, segment_index, max_retries=3):
+        current_route = self.route_forward_segments[segment_index]
+        for pt in current_route:
+            goal_pose = self.set_goal_pose(*pt)
+            self.navigator.goToPose(goal_pose)
+            retries = 0
+
+            while not self.navigator.isTaskComplete():
+                feedback = self.navigator.getFeedback()
+                if feedback:
+                    self.get_logger().info('Distance remaining: {:.2f}'.format(feedback.distance_remaining))
+
+            result = self.navigator.getResult()
+            if result == TaskResult.SUCCEEDED:
+                self.get_logger().info('Reached goal: ({}, {})'.format(pt[0], pt[1]))
+                self.current_point = segment_index
+            elif result == TaskResult.CANCELED:
+                self.get_logger().info('Goal was canceled, exiting.')
+                return
+            elif result == TaskResult.FAILED:
+                retries += 1
+                if retries >= max_retries:
+                    self.get_logger().info('Failed to reach goal: ({}, {}), max retries reached, exiting.'.format(pt[0], pt[1]))
+                    break
+                self.get_logger().info('Failed to reach goal: ({}, {}), retrying...'.format(pt[0], pt[1]))
+
+                            
     def patrol_work(self):
         routes = [self.route_forward, self.route_reverse]
         current_route_index = 0
@@ -203,18 +150,6 @@ class RobotDriver(Node):
                         break
 
                 current_route_index = (current_route_index + 1) % 2
-
-    def get_description_pose(self, route_index, goal_index):
-        if route_index == 0:  # 정방향
-            mapping = {1: 0, 3: 2, 4: 1, 5: 4, 6: 3, 8: 5}
-        else:  # 역방향
-            mapping = {2: 3, 3: 4, 4: 1, 5: 2, 7: 0}
-        
-        description_index = mapping.get(goal_index)
-        if description_index is not None:
-            description_pose = self.set_goal_pose(*self.description_point[description_index])
-            return description_pose
-        return None
 
     def publish_robot_state(self):
         msg = RobotState()

@@ -121,6 +121,7 @@ controller_server:
       plugin: "nav2_controller::SimpleProgressChecker"
       required_movement_radius: 0.5
       movement_time_allowance: 10.0
+
     # Goal checker parameters
     #precise_goal_checker:
     #  plugin: "nav2_controller::SimpleGoalChecker"
@@ -130,8 +131,9 @@ controller_server:
     general_goal_checker:
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.1
-      yaw_goal_tolerance: 0.1
+      xy_goal_tolerance: 0.15  # 허용 오차 증가
+      yaw_goal_tolerance: 0.15  # 허용 오차 증가
+
     # DWB parameters
     FollowPath:
       plugin: "dwb_core::DWBLocalPlanner"
@@ -158,8 +160,8 @@ controller_server:
       sim_time: 1.5
       linear_granularity: 0.1
       angular_granularity: 0.05
-      transform_tolerance: 0.1
-      xy_goal_tolerance: 0.1
+      transform_tolerance: 0.15
+      xy_goal_tolerance: 0.15  # 허용 오차 증가
       trans_stopped_velocity: 0.25
       short_circuit_trajectory_evaluation: True
       stateful: True

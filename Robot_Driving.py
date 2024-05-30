@@ -7,8 +7,7 @@ from ros_package_msgs.msg import RobotState
 from geometry_msgs.msg import PoseStamped
 import threading
 import time , asyncio
-from tf_transformations import quaternion_from_euler
-import math
+import ros_package.routes as routes
 
 class RobotDriver(Node):
     def __init__(self):
@@ -20,7 +19,7 @@ class RobotDriver(Node):
         # Robot_Driving/robot_command 서비스를 받아오는 서비스 서버 생성
         self.robot_command_server = self.create_service(CommandString, '/Robot_Driving/robot_command', self.robot_command_callback)
         
-        # # 기본적으로 navigator를 초기화
+        # 기본적으로 navigator를 초기화
         self.navigator = BasicNavigator()
         self.navigator.waitUntilNav2Active()
 
@@ -28,6 +27,7 @@ class RobotDriver(Node):
         self.current_state = 'arrive'
         self.patrolling = True
         self.command_received = False
+        self.current_point = 0
 
         # 순찰 방향을 위한 플래그
         self.forward_patrol = True
@@ -35,34 +35,23 @@ class RobotDriver(Node):
         # 주기적으로 로봇 상태를 퍼블리시
         self.state_check_timer = self.create_timer(1.0, self.publish_robot_state)
 
-        
-        self.route_forward = [
-            (0.0, 0.0, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (6.0, 0.0, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (6.0, -6.0, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (0.0, -6.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (0.0, -12.0, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (6.0, -12.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (6.0, -18.0, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (0.0, -18.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
-        ]
+        # 순찰 경로 정의
+        self.route_forward = routes.route_forward
 
-        self.route_reverse = [
-            (6.0, -18.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (6.0, -12.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (0.0, -12.0, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (0.0, -6.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (6.0, -6.0, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (6.0, 0.0, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (0.0, 0.0, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-        ]
-    
+        self.route_reverse = routes.route_reverse
+        
+        self.route_forward_segments = routes.route_forward_segments
+        
+        self.route_reverse_segments = routes.route_reverse_segments
+        
+        self.route_forward_description = routes.route_forward_description
+
+        self.route_resverse_description = routes.route_forward_description
+        
+        
         self.set_initial_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
 
         self.patrol_work()
-
-    def euler_to_quaternion(self, yaw, pitch=0.0, roll=0.0):
-        return quaternion_from_euler(roll, pitch, yaw)
     
     def set_goal_pose(self, x, y, z, qx, qy, qz, qw):
         goal_pose = PoseStamped()
@@ -89,39 +78,61 @@ class RobotDriver(Node):
         initial_pose.pose.orientation.z = qz
         initial_pose.pose.orientation.w = qw
         self.navigator.setInitialPose(initial_pose)
-        
-        
+
+    def follow_route_segment(self, current_route_segments, segment_index, max_retries=3):
+        self.get_logger().info(f'Starting segment {segment_index} in route segment')
+        current_route = current_route_segments[segment_index]
+        self.get_logger().info(f'Current route: {current_route}')
+        for pt in current_route:
+            if isinstance(pt, (list, tuple)) and len(pt) == 7:
+                self.get_logger().info(f'Current waypoint: {pt}')
+                
+                goal_pose = self.set_goal_pose(*pt)
+                self.get_logger().info(f'Setting goal pose: {goal_pose}')
+
+            self.navigator.goToPose(goal_pose)
+            retries = 0
+
+            while not self.navigator.isTaskComplete():
+                feedback = self.navigator.getFeedback()
+                if feedback:
+                    self.get_logger().info('Distance remaining: {:.2f}'.format(feedback.distance_remaining))
+
+            result = self.navigator.getResult()
+            if result == TaskResult.SUCCEEDED:
+                if current_route_segments == self.route_forward_segments:
+                    self.current_point = segment_index + 1
+                elif current_route_segments == self.route_reverse_segments:
+                    self.current_point = 5 - segment_index
+                self.get_logger().info('Reached goal: ({}, {}), current_point: {}'.format(pt[0], pt[1], self.current_point))
+            elif result == TaskResult.CANCELED:
+                self.get_logger().info('Goal was canceled, exiting.')
+                return
+            elif result == TaskResult.FAILED:
+                retries += 1
+                if retries >= max_retries:
+                    self.get_logger().info('Failed to reach goal: ({}, {}), max retries reached, exiting.'.format(pt[0], pt[1]))
+                    break
+                self.get_logger().info('Failed to reach goal: ({}, {}), retrying...'.format(pt[0], pt[1]))
+
 
     def patrol_work(self):
-        routes = [self.route_forward, self.route_reverse]
-        current_route_index = 0
+        current_route_index = 0  # 순찰 시작점
 
         while rp.ok():
             if self.patrolling and not self.command_received:
-                current_route = routes[current_route_index]
-                for pt in current_route:
+                if current_route_index % 2 == 0:
+                    current_route_segments = self.route_forward_segments
+                else:
+                    current_route_segments = self.route_reverse_segments
+
+                for segment_index in range(len(current_route_segments)):
+                    self.follow_route_segment(current_route_segments, segment_index)
                     if self.command_received:
                         break
-                    goal_pose = self.set_goal_pose(*pt)
-                    self.navigator.goToPose(goal_pose)
-                    while not self.navigator.isTaskComplete():
-                        feedback = self.navigator.getFeedback()
-                        if feedback:
-                            self.get_logger().info('Distance remaining: {:.2f}'.format(feedback.distance_remaining))
 
-                    result = self.navigator.getResult()
-                    if result == TaskResult.SUCCEEDED:
-                        self.get_logger().info('Reached goal: ({}, {})'.format(pt[0], pt[1]))
-                    elif result == TaskResult.CANCELED:
-                        self.get_logger().info('Goal was canceled, exiting patrol.')
-                        return
-                    elif result == TaskResult.FAILED:
-                        self.get_logger().info('Failed to reach goal: ({}, {}), retrying...'.format(pt[0], pt[1]))
-                        break
-
-                current_route_index = (current_route_index + 1) % 2
-
-
+                current_route_index += 1  # 다음 순찰 방향으로 전환
+                
     def publish_robot_state(self):
         msg = RobotState()
         msg.command = self.current_state
@@ -139,9 +150,6 @@ class RobotDriver(Node):
 
             self.patrolling = False
             self.current_state = 'Human Detection'
-
-            self.handle_human_detect()
- 
 
         elif request.command == "description":
             self.get_logger().info('Received description')
@@ -163,8 +171,7 @@ class RobotDriver(Node):
             self.current_state = 'Guiding'
 
             self.handle_guide(request.description)
-
-            
+                        
         elif request.command == "comeback":
             self.get_logger().info('Received comeback')
             response.success = True
