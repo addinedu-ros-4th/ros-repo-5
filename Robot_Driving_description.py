@@ -38,23 +38,89 @@ class RobotDriver(Node):
         # 순찰 경로 정의
         self.route_forward = [
             (0.2, 0.0, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (0.2, 1.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (1.1, 0.85, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (0.1, 0.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
+            (0.1 , 0.4, 0.0, *self.euler_to_quaternion(math.radians(90))),
+            (0.1 , 0.3, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (0.4, 0.3, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (0.3, 0.3, 0.0, *self.euler_to_quaternion(math.radians(-135))),
+            (0.3, 0.3, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (0.0 , 0.3, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (0.1 , 0.3, 0.0, *self.euler_to_quaternion(math.radians(90))),
+            
+            (0.1, 0.8, 0.0, *self.euler_to_quaternion(math.radians(90))),
+            (0.1, 0.7, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            
+            (1.1, 0.7, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (1.0, 0.7, 0.0, *self.euler_to_quaternion(math.radians(-90))),
+            (1.0, 0.3, 0.0, *self.euler_to_quaternion(math.radians(-90))),
+            (1.0, 0.4, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (1.5, 0.4, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (1.4, 0.4, 0.0, *self.euler_to_quaternion(math.radians(135))),
+            (1.4, 0.4, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (1.1, 0.4, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (1.2, 0.4, 0.0, *self.euler_to_quaternion(math.radians(-90))),
+            
+            (1.2, -0.1, 0.0, *self.euler_to_quaternion(math.radians(-90))),
+            (1.2, 0.0, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (1.2, 0.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
+            (1.2, 0.4, 0.0, *self.euler_to_quaternion(math.radians(90))),
+            (1.2, 0.3, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (0.9 ,0.3, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (0.8 ,0.3, 0.0, *self.euler_to_quaternion(math.radians(-45))),
+            (0.8 ,0.3, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (1.2, 0.3, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (1.1, 0.3, 0.0, *self.euler_to_quaternion(math.radians(-90))),
             (1.1, -0.1, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (1.1, 0.0, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (1.1, 0.0, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            
             (2.3, 0.0, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (2.25, 0.8, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (2.25, 0.7, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (2.2, 0.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
+            
+            (2.2, 0.8, 0.0, *self.euler_to_quaternion(math.radians(90))),
+            (2.2, 0.7, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (2.2, 0.7, 0.0, *self.euler_to_quaternion(math.radians(-90))),
+            (2.2 ,0.3, 0.0, *self.euler_to_quaternion(math.radians(-90))),
+            (2.2 ,0.4, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (1.6 ,0.4, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (1.7 ,0.4, 0.0, *self.euler_to_quaternion(math.radians(45))),
+            (1.7 ,0.4, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (2.3, 0.4, 0.0, *self.euler_to_quaternion(math.radians(0))),
         ]
 
         self.route_reverse = [
-            (2.25, -0.1, 0.0, *self.euler_to_quaternion(math.radians(-90))),
-            (0.85, 0.0, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (2.2, -0.1, 0.0, *self.euler_to_quaternion(math.radians(-90))),
+            (2.2, 0.0, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            
+            (1.1, 0.0, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (1.2, 0.0, 0.0, *self.euler_to_quaternion(math.radians(90))),
+            (1.2, 0.4, 0.0, *self.euler_to_quaternion(math.radians(90))),
+            (1.2, 0.3, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (0.9 ,0.3, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (0.8 ,0.3, 0.0, *self.euler_to_quaternion(math.radians(-45))),
+            (0.8 ,0.3, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (1.1, 0.3, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (1.0, 0.3, 0.0, *self.euler_to_quaternion(math.radians(90))),
+            
             (1.0, 0.8, 0.0, *self.euler_to_quaternion(math.radians(90))),
             (1.0, 0.7, 0.0, *self.euler_to_quaternion(math.radians(0))),
-            (-0.05, 0.7, 0.0, *self.euler_to_quaternion(math.radians(180))),
-            (0.2, -0.1, 0.0, *self.euler_to_quaternion(math.radians(90))),
-            (0.2, 0.0, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (1.0, 0.7, 0.0, *self.euler_to_quaternion(math.radians(-90))),
+            (1.0, 0.3, 0.0, *self.euler_to_quaternion(math.radians(-90))),
+            (1.0, 0.4, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (1.5, 0.4, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            (1.4, 0.4, 0.0, *self.euler_to_quaternion(math.radians(135))),
+            (1.4, 0.4, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (1.1, 0.4, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (1.0, 0.4, 0.0, *self.euler_to_quaternion(math.radians(-90))),
+            (1.0, 0.8, 0.0, *self.euler_to_quaternion(math.radians(-90))),
+            (1.0, 0.7, 0.0, *self.euler_to_quaternion(math.radians(180))),
+
+            (0.0, 0.7, 0.0, *self.euler_to_quaternion(math.radians(180))),
+            (0.1, 0.7, 0.0, *self.euler_to_quaternion(math.radians(-90))),
+            
+            (0.1, -0.1, 0.0, *self.euler_to_quaternion(math.radians(-90))),
+            (0.1, 0.0, 0.0, *self.euler_to_quaternion(math.radians(0))),
+            
+            
         ]
         
         self.description_point = [
