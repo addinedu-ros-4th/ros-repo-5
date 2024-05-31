@@ -46,7 +46,9 @@ class RobotDriver(Node):
         self.route_reverse_description = routes.route_forward_description
         
         self.set_initial_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
-
+        
+        self.goal_poses_art = ['강아지','2','고양이','초록양','5','갈색말'] # 작품위치에 따른 작품명
+        self.current_art = None
         # 스타트 신호
         self.publish_robot_state()
 
@@ -171,8 +173,9 @@ class RobotDriver(Node):
             self.current_segment_index = 0
 
         # 상태를 업데이트
-        self.current_state = 'arrive at segment {}'.format(self.current_segment_index)
-        self.get_logger().info('current_state : {}'.format(self.current_state))
+        self.art = self.goal_poses_art[self.current_segment_index]  # 수정된 부분
+        self.current_state = 'arrive at {}'.format(self.art)  # 작품명에 도착
+               
 
     def patrol_command_callback(self, request, response):
 
@@ -258,51 +261,9 @@ class RobotDriver(Node):
     def handle_human_detect(self):
         self.get_logger().info('human_detect.')
 
-        self.art_index = self.goal_poses_art.index(self.current_art) #현재 작품이 몇번째인지
+        description_segments = self.route_forward_description 
 
-        self.descript_point = self.point[self.art_index] # i를 받은 작품설명 위치
-
-        goal_pose , orientation = self.descript_point # 작품설명위치의 위치와 자세
-
-        goal_x, goal_y, goal_z = goal_pose
-        goal_orientation_x, goal_orientation_y, goal_orientation_z, goal_orientation_w = orientation
-
-        goal_pose_msg = PoseStamped()
-        goal_pose_msg.header.frame_id = 'map'
-        goal_pose_msg.header.stamp = self.get_clock().now().to_msg()
-        goal_pose_msg.pose.position.x = goal_x
-        goal_pose_msg.pose.position.y = goal_y
-        goal_pose_msg.pose.position.z = goal_z
-        goal_pose_msg.pose.orientation.x = goal_orientation_x
-        goal_pose_msg.pose.orientation.y = goal_orientation_y
-        goal_pose_msg.pose.orientation.z = goal_orientation_z
-        goal_pose_msg.pose.orientation.w = goal_orientation_w
-
-        self.get_logger().info('Navigating to goal: ({}, {}, {})'.format(goal_x, goal_y, goal_z))
-
-        # 목표 위치로 이동
-        self.navigator.goToPose(goal_pose_msg)
-
-        start_time = time.time()
-        timeout = 12  # 12초 타임아웃
-
-        while not self.navigator.isTaskComplete():
-            if time.time() - start_time > timeout:
-                self.navigator.cancelTask()
-                self.get_logger().warn('Navigation to goal timed out!')
-                break
-            time.sleep(0.1)
-
-        result = self.navigator.getResult()
-        
-        if result == TaskResult.SUCCEEDED:
-            self.get_logger().info('Arrived at the  location!')
-
-        elif result == TaskResult.CANCELED:
-            self.get_logger().info('Navigation to location was canceled!')
-
-        elif result == TaskResult.FAILED:
-            self.get_logger().info('Navigation to location failed!')
+        self.follow_description_route(description_segments,self.current_segment_index)
         
 
     def handle_guide(self, description):
