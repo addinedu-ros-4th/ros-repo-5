@@ -10,8 +10,5 @@ def generate_launch_description():
             Node(
                 namespace= "" , package= "admin_package" ,
                 executable= "gui" , output = "screen"),
-            Node(
-                namespace= "" , package= "admin_package" ,
-                executable= "msg" , output = "screen"),
         ]
     )

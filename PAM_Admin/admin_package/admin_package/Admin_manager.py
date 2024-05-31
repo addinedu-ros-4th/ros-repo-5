@@ -1,6 +1,6 @@
 import rclpy as rp
 from rclpy.node import Node
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import CompressedImage
 from ros_package_msgs.srv import CommandString 
 from geometry_msgs.msg import PoseWithCovarianceStamped 
 from cv_bridge import CvBridge
@@ -10,6 +10,9 @@ from ros_package_msgs.srv import CommandString
 from ros_package_msgs.msg import Voice
 from ros_package_msgs.msg import RobotState
 from .DB_Manager import DatabaseManager
+import time
+import numpy as np
+import cv2
 
 # YOLOv5 모델 불러오기
 def load_yolo_model():
@@ -34,7 +37,6 @@ class Admin_Manager(Node):
         # 데이터베이스 연결
         self.db_manager.connect_database()
 
-
         # YOLO 모델 불러오기
         self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
         # CvBridge 객체 생성
@@ -50,17 +52,9 @@ class Admin_Manager(Node):
 
         # camera 토픽 구독자 생성
         self.camera_subscription = self.create_subscription(
-            Image,
-            'Admin_Manager/camera',
+            CompressedImage,
+            'Admin_Manager/camera/compressed',
             self.camera_callback,
-            10
-        )
-
-        # amcl_pose 토픽 구독자 생성 
-        self.pose_subscription = self.create_subscription(
-            PoseWithCovarianceStamped,
-            'Admin_Manager/amcl_pose',
-            self.pose_callback,
             10
         )
 
@@ -82,45 +76,44 @@ class Admin_Manager(Node):
 
         #  /robot_command 서비스 보내기 
         self.robot_command_client = self.create_client(CommandString, '/robot_command')
-        self.state_check_timer = self.create_timer(1.0, self.check_state)
-        
+
+        # /patrol_command
+        self.patrol_command_client = self.create_client(CommandString, '/patrol_command')
+
         self.camera_subscription
-        self.pose_subscription
         self.robot_state_subscription
         self.user_voice_subscription
 
 
     def detect_people(self, model, img):
-            self.get_logger().info('DETECTING-DETECTING-DETECTING')
+        self.get_logger().info('DETECTING-DETECTING-DETECTING')
 
-            results = model(img)
-            detected_objects = results.pandas().xyxy[0]
-            people_detected = detected_objects[detected_objects['name'] == 'person']
-            print(len(people_detected))
+        results = model(img)
+        detected_objects = results.pandas().xyxy[0]
+        people_detected = detected_objects[detected_objects['name'] == 'person']
+        print(len(people_detected))
 
-            return True if len(people_detected) > 0 else False
-        
+        return True if len(people_detected) > 0 else False
+
     def camera_callback(self, msg):
-        # self.get_logger().info('Received /camera')
-        self.cv_img = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-
-   
-    def pose_callback(self, msg):
-        self.get_logger().info('Received /amcl_pose')
-
-        self.robot_pose_x = int((msg.pose.pose.position.x - self.origin[0]) / self.resolution)  
-        self.robot_pose_y = int((msg.pose.pose.position.y - self.origin[1]) / self.resolution)
-
+        # 압축된 이미지를 OpenCV 이미지로 변환
+        np_arr = np.frombuffer(msg.data, np.uint8)
+        self.cv_img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
     def robot_state_callback(self, msg):
         # self.get_logger().info('Received /robot_state')
         self.robot_state = msg.command  # 메시지 구조에 맞게 수정 필요
         self.get_logger().info(f'{self.robot_state}')
-        if 'not item' in self.robot_state:
+        if 'arrive' in self.robot_state:
             self.arrive = True
-            self.name = self.robot_state[len("not item at"):].strip()
+            self.name = self.robot_state[len("arrive at"):].strip()
+            self.check_state()
         elif 'guide' in self.robot_state:
             self.name = self.robot_state[len("guide at"):].strip()
+        elif 'not' in self.robot_state:
+            self.arrive = True
+            self.send_state = True
+            self.check_state()
         else:
             self.arrive = False
             self.send_state = False
@@ -133,11 +126,20 @@ class Admin_Manager(Node):
         if self.arrive:
             # self.get_logger().info("arrive is true")
 
-            if detect_people(self.model, self.cv_img) and self.send_state == False:
-                # self.get_logger().info("Requrest to robot : HD")
-
-                self.send_robot_command("human_detect")
+            # /patrol_command , /robot_command 가 끝나고 콜백안에서 로봇상태 보내는데,
+            # response를 받기전에 실행하면 서비스 끼리 겹치면 안되니까 잠깐 대기 
+            if "2" in self.robot_state or "5" in self.robot_state:
+                self.send_patrol_command("patrol")
                 self.send_state = True
+            else:
+                if detect_people(self.model, self.cv_img) and self.send_state == False:
+                    # self.get_logger().info("Requrest to robot : HD")
+
+                    self.send_robot_command("human_detect")
+                    self.send_state = True
+                else:
+                    self.send_patrol_command("patrol")
+                    self.send_state = True
 
 
     def user_voice_callback(self, msg):
@@ -146,7 +148,7 @@ class Admin_Manager(Node):
         text = msg.command
         print(text)
 
-        keywords = ["피라미드", "나폴레옹", "스핑크스", "오벨리스크", "람세스", "오시리스"]
+        keywords = ["강아지", "고양이", "갈색말", "초록양"]
 
         if "설명" in text:
             self.get_logger().info("Description command detected!")
@@ -174,7 +176,8 @@ class Admin_Manager(Node):
         else:
             self.db_manager.insert_event_log(self.name, "comeback")
             self.send_robot_command("comeback")
-            
+
+
     def send_robot_command(self, command: str, description: str = ""):
         if not self.robot_command_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().error('Robot_command service not available')
@@ -186,6 +189,18 @@ class Admin_Manager(Node):
         future = self.robot_command_client.call_async(request)
         future.add_done_callback(self.send_robot_command_callback)
 
+
+    def send_patrol_command(self, command: str, description: str = ""):
+        if not self.patrol_command_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().error('patrol_command service not available')
+            
+        request = CommandString.Request()
+        request.command = command
+        request.description = description
+
+        future = self.patrol_command_client.call_async(request)
+        future.add_done_callback(self.send_patrol_command_callback)
+
     
     def send_robot_command_callback(self, future):
         try:
@@ -194,6 +209,17 @@ class Admin_Manager(Node):
                 self.get_logger().info('Robot command executed successfully (Admin to Robot): %s' % response.message)
             else:
                 self.get_logger().error('Failed to execute robot command (Admin to Robot): %s' % response.message)
+        except Exception as e:
+            self.get_logger().error('Service call failed: %s' % str(e))
+
+    
+    def send_patrol_command_callback(self, future):
+        try:
+            response = future.result()
+            if response.success:
+                self.get_logger().info('patrol command executed successfully (Admin to Robot): %s' % response.message)
+            else:
+                self.get_logger().error('Failed to execute patrol command (Admin to Robot): %s' % response.message)
         except Exception as e:
             self.get_logger().error('Service call failed: %s' % str(e))
 

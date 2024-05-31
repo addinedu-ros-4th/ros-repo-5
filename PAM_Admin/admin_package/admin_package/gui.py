@@ -2,109 +2,81 @@ import sys
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import CompressedImage
+from geometry_msgs.msg import PoseWithCovarianceStamped 
 from ros_package_msgs.msg import RobotState
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QTextEdit, QPushButton, QComboBox, QDateEdit, QVBoxLayout, QTableWidget, QTableWidgetItem
-from PyQt6.QtGui import QPixmap, QImage
+from PyQt6.QtGui import QPixmap, QImage, QTransform
 from cv_bridge import CvBridge
 import cv2
 from PyQt6 import uic
 from threading import Thread
-from PyQt6.QtCore import pyqtSignal, QObject
-from ros_package_msgs.srv import CommandString 
+from PyQt6.QtCore import pyqtSignal, QObject , QDate
+from PyQt6 import QtCore
+# from ros_package_msgs.srv import CommandString 
 from .DB_Manager import DatabaseManager
+from datetime import datetime
+import numpy as np
 
 class Ros2PyQtApp(QMainWindow):
     
-    update_state_signal = pyqtSignal()
+    update_image_signal = pyqtSignal(np.ndarray)
 
     def __init__(self):
         super().__init__()
-        uic.loadUi("./gui.ui", self)
-        self.setWindowTitle("ROS2 PyQt6 Image Viewer")
-        self.update_state_signal.connect(self.setState)  # 신호와 슬롯 연결
+        uic.loadUi("/home/hj/amr_ws/ROS/src/PAM_Admin/src/admin_package/admin_package/gui.ui", self)
+        self.setWindowTitle("관리자 전용")
 
-        # self.send_msg_btn.clicked.connect(self.send_message)
+        self.update_image_signal.connect(self.update_map_label)  # 신호와 슬롯 연결
+
         self.node = rclpy.create_node('admin_node')
-        # self.publisher = self.node.create_publisher(SignalMsg, 'state', 10)
 
         self.person_flag = False
         self.detect_array = []
 
-        self.robot_command_client = self.node.create_client(CommandString, '/robot_command')
         #DB연결
         self.db_manager = DatabaseManager(host="localhost", user="root")
         #search 버튼 클릭
         self.search_btn.clicked.connect(self.search_event_logs)
 
-        # QDateEdit 설정
-        self.dateStart.setDisplayFormat("yyyy-MM-dd")
+        # 현재 날짜를 가져와서 dateEnd 위젯에 설정
+        self.dateEnd.setDate(QDate.currentDate())
         self.dateEnd.setDisplayFormat("yyyy-MM-dd")
-        
-    def setState(self):
-        if self.person_flag == True:
-            self.state_textEdit.setText("Person Detected!")
-            return
-        else :
-            self.state_textEdit.setText("Normal")
-            return
-        
-    # def send_message(self):
-    #     req = SignalMsg()
-    #     req.recv_msg = "Send_msg"
-    #     self.publisher.publish(req)
 
+        # Map 오브젝트를 QLabel로 정의
+        self.map_label = self.findChild(QLabel, 'map_label')
         
-        
+
     def display_image(self, cv_image):
         height, width, channel = cv_image.shape
         bytes_per_line = 3 * width
         q_image = QImage(cv_image.data, width, height, bytes_per_line, QImage.Format.Format_RGB888).rgbSwapped()
         self.camera_label.setPixmap(QPixmap.fromImage(q_image))
-        
-    def display_map(self, cv_image):
-        height, width, channel = cv_image.shape
-        bytes_per_line = 3 * width
-        q_image = QImage(cv_image.data, width, height, bytes_per_line, QImage.Format.Format_RGB888).rgbSwapped()
-        self.map_label.setPixmap(QPixmap.fromImage(q_image))
-        
-    def update_text_edit(self, text):
-        if text == "Person detected!":
-            self.person_flag = True
-            self.detect_array.append("person")
-            print(self.detect_array)
 
-            if len(self.detect_array) > 10:
-                self.log_textEdit.append("Person Detected!")  # scale 값을 log_textEdit에 추가로 기록
-                self.detect_array.clear()  # detect_array 초기화
-                self.send_robot_command("human_detect")
-            self.update_state_signal.emit()  # 신호 발생
-        else :
-            self.person_flag = False
-            self.detect_array.clear()  # detect_array 초기화            
-            self.update_state_signal.emit()  # 신호 발생
 
-    def send_robot_command(self, command: str, description: str = ""):
-        if not self.robot_command_client.wait_for_service(timeout_sec=5.0):
-            self.node.get_logger().error('Robot_command service not available')
-            return
+    def update_map_label(self, map_image):
+        # numpy 배열을 QImage로 변환
+        height, width = map_image.shape
+        bytes_per_line = width
+        q_image = QImage(map_image.data, width, height, bytes_per_line, QImage.Format.Format_Grayscale8)
         
-        request = CommandString.Request()
-        request.command = command
-        request.description = description
-        future = self.robot_command_client.call_async(request)
-        future.add_done_callback(self.send_robot_command_callback)
+        # QImage를 QPixmap으로 변환하여 QLabel에 설정
+        pixmap = QPixmap.fromImage(q_image)
 
-    
-    def send_robot_command_callback(self, future):
-        try:
-            response = future.result()
-            if response.success:
-                self.node.get_logger().info('Robot command executed successfully (Admin to Robot): %s' % response.message)
-            else:
-                self.node.get_logger().error('Failed to execute robot command (Admin to Robot): %s' % response.message)
-        except Exception as e:
-            self.node.get_logger().error('Service call failed: %s' % str(e))
+
+        # 이미지를 왼쪽으로 90도 회전
+        transformed_pixmap = pixmap.transformed(QTransform().rotate(90))
+
+        # QLabel의 크기 가져오기
+        label_width = self.map_label.width()
+        label_height = self.map_label.height()
+
+        # QPixmap을 QLabel 크기에 맞게 조정
+        scaled_pixmap = transformed_pixmap.scaled(label_width, label_height, aspectRatioMode=QtCore.Qt.AspectRatioMode.KeepAspectRatio)
+
+        # QLabel에 이미지 설정
+        self.map_label.setPixmap(scaled_pixmap)
+
 
     def search_event_logs(self):
         service_name = self.Service.currentText()
@@ -128,66 +100,109 @@ class ImageSubscriber(Node):
         self.bridge = CvBridge()
         
         self.subscription = self.create_subscription(
-            Image,
-            'Admin_Manager/camera',
-            self.listener_callback,
+            CompressedImage,
+            'Admin_Manager/camera/compressed',
+            self.image_callback,
             10)
         
         self.subscription  # prevent unused variable warning
         
-    def listener_callback(self, msg):
-        cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+    def image_callback(self, msg):
+        np_arr = np.frombuffer(msg.data, np.uint8)
+        cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         self.ui_app.display_image(cv_image)
         
+
 class MapSubscriber(Node):
     def __init__(self, ui_app):
         super().__init__('map_subscriber')
         self.ui_app = ui_app
         self.bridge = CvBridge()
-        
-        self.subscription = self.create_subscription(
-            Image,
-            'amcl_map',
-            self.listener_callback,
-            10)
-        
-        self.subscription  # prevent unused variable warning
-        
-    def listener_callback(self, msg):
-        cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-        self.ui_app.display_map(cv_image)
 
-class TextSubscriber(Node):
-    def __init__(self, ui_app):
-        super().__init__('text_subscriber')
-        self.ui_app = ui_app
-        
         self.subscription = self.create_subscription(
-            RobotState,
-            'signal_topic',
-            self.listener_callback,
+            PoseWithCovarianceStamped,
+            'Admin_Manager/amcl_pose',
+            self.pose_callback,
             10)
-        
+
         self.subscription  # prevent unused variable warning
-        
-    def listener_callback(self, msg):
-        self.ui_app.update_text_edit(msg.recv_msg)
-        
+
+        # 맵 이미지 로드
+        self.map_image = cv2.imread('/home/hj/amr_ws/ROS/src/PAM_Admin/map.pgm', cv2.IMREAD_GRAYSCALE)
+
+        # 맵 정보 설정
+        self.resolution = 0.05  # 맵의 해상도
+        self.origin = [-0.327, -1.71, 0]  # 맵의 원점
+
+        # 이전 로봇 위치
+        self.prev_robot_pose = None
+
+        # 초기 로봇 위치 설정
+        self.robot_pose_x = int(-self.origin[0] / self.resolution)
+        self.robot_pose_y = int(-self.origin[1] / self.resolution)
+
+        self.update_map_image()
+
+        # 주기적으로 위치를 업데이트하는 타이머 설정
+        self.timer = self.create_timer(0.1, self.timer_callback)
+
+
+    def pose_callback(self, msg):
+        # self.get_logger().info('Received /amcl_pose')
+
+        # 로봇의 위치 받아오기
+        self.robot_pose_x = int((msg.pose.pose.position.x - self.origin[0]) / self.resolution)  # x 위치
+        self.robot_pose_y = int((msg.pose.pose.position.y - self.origin[1]) / self.resolution)  # y 위치
+
+
+    def update_map_image(self):
+        # 맵 이미지의 높이
+        map_height = self.map_image.shape[0]
+
+        # 이전 로봇 위치 지우기
+        if self.prev_robot_pose is not None:
+            cv2.circle(self.map_image, self.prev_robot_pose, 3, (255, 255, 255), -1)
+
+        # 로봇 위치를 이미지 좌표로 변환 (상하 반전)
+        robot_image_y = map_height - self.robot_pose_y
+
+        # 맵 이미지에 새로운 로봇 위치 표시
+        cv2.circle(self.map_image, (self.robot_pose_x, robot_image_y), 3, (0, 255, 0), -1)
+
+        # 이전 로봇 위치 업데이트
+        self.prev_robot_pose = (self.robot_pose_x, robot_image_y)
+
+        # 신호를 통해 GUI 업데이트 요청
+        self.ui_app.update_image_signal.emit(self.map_image)
+
+    def timer_callback(self):
+        # 위치를 주기적으로 업데이트
+        self.update_map_image()
+
+
 class StateSubscriber(Node):
     def __init__(self, ui_app):
         super().__init__('state_subscriber')
         self.ui_app = ui_app
+        self.previous_state = ""  # 이전 상태 저장 변수
+
+        self.state_label = self.ui_app.findChild(QLabel, 'state_label')  # QLabel 찾기
         
         self.subscription = self.create_subscription(
             RobotState,
             'Admin_Manager/robot_state',
-            self.listener_callback,
+            self.state_callback,
             10)
         
         self.subscription  # prevent unused variable warning
         
-    def listener_callback(self, msg):
-        self.ui_app.update_text_edit(msg.command)
+    def state_callback(self, msg):
+        current_state = msg.command
+        
+        # 현재 상태와 이전 상태를 비교하여 변경된 경우에만 텍스트를 업데이트
+        if current_state != self.previous_state:
+            self.ui_app.state_label.setText(current_state)
+            self.previous_state = current_state
 
         
 def main(args=None):
@@ -200,12 +215,10 @@ def main(args=None):
     
     image_subscriber = ImageSubscriber(ros2_pyqt_app)
     map_subscriber = MapSubscriber(ros2_pyqt_app)
-    text_subscriber = TextSubscriber(ros2_pyqt_app)
     state_subscriber = StateSubscriber(ros2_pyqt_app)
     
     executor.add_node(image_subscriber)
     executor.add_node(map_subscriber)
-    executor.add_node(text_subscriber)
     executor.add_node(state_subscriber)
 
     def run_ros_spin():

@@ -1,5 +1,5 @@
 import mysql.connector
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class DatabaseManager:
     def __init__(self, host, user):
@@ -8,7 +8,7 @@ class DatabaseManager:
         self.db_name = "ros_final"
         self.cur = None
         self.conn = None
-        self.password = "your_password"
+        self.password = "guswns123"
 
 
     def connect_database(self, db_name=None):
@@ -62,10 +62,34 @@ class DatabaseManager:
             print("Failed inserting event log:", err)
 
     def search_event_logs(self, service_name, object_name, start_date, end_date):
-        self.connect_database() 
-        query = """
-        SELECT * FROM EventLog 
-        WHERE Service = %s AND Object = %s AND Date BETWEEN %s AND %s
-        """
-        self.cur.execute(query, (service_name, object_name, start_date, end_date))
-        return self.cur.fetchall()
+            self.connect_database()
+            
+            conditions = []
+            parameters = []
+            
+            if service_name != 'ALL':
+                conditions.append("Service = %s")
+                parameters.append(service_name)
+            
+            if object_name != 'ALL':
+                conditions.append("Object = %s")
+                parameters.append(object_name)
+            
+            if start_date and end_date:
+                # 종료일(end_date)에 하루를 추가하여 포함되도록 설정
+                adjusted_end_date = (datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+                conditions.append("Date BETWEEN %s AND %s")
+                parameters.extend([start_date, adjusted_end_date])
+            
+            # Construct the query based on the conditions
+            if not conditions:
+                query = "SELECT * FROM EventLog"
+            else:
+                query = "SELECT * FROM EventLog WHERE " + " AND ".join(conditions)
+            
+            # Debugging print statements
+            print(f"Query: {query}")
+            print(f"Parameters: {parameters}")
+            
+            self.cur.execute(query, tuple(parameters))
+            return self.cur.fetchall()
