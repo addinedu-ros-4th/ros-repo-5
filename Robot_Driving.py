@@ -27,6 +27,7 @@ class RobotDriver(Node):
         self.current_state = 'arrive'
         self.patrolling = True
         self.command_received = False
+        self.current_segment_index = 0
         self.current_point = 0
 
         # 순찰 방향을 위한 플래그
@@ -36,23 +37,26 @@ class RobotDriver(Node):
         self.state_check_timer = self.create_timer(1.0, self.publish_robot_state)
 
         # 순찰 경로 정의
-        self.route_forward = routes.route_forward
-
-        self.route_reverse = routes.route_reverse
-        
+              
         self.route_forward_segments = routes.route_forward_segments
         
         self.route_reverse_segments = routes.route_reverse_segments
         
         self.route_forward_description = routes.route_forward_description
 
-        self.route_resverse_description = routes.route_forward_description
-        
+        self.route_reverse_description = routes.route_forward_description
         
         self.set_initial_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
 
+        # 스타트 신호
+        self.publish_robot_state()
+
+        # 1번 웨이포인트로 이동
         self.patrol_work()
-    
+
+        # 멈춤상태 신호
+        self.publish_robot_state()
+        
     def set_goal_pose(self, x, y, z, qx, qy, qz, qw):
         goal_pose = PoseStamped()
         goal_pose.header.frame_id = 'map'
@@ -79,20 +83,44 @@ class RobotDriver(Node):
         initial_pose.pose.orientation.w = qw
         self.navigator.setInitialPose(initial_pose)
 
-    def follow_route_segment(self, current_route_segments, segment_index, max_retries=3):
-        self.get_logger().info(f'Starting segment {segment_index} in route segment')
-        current_route = current_route_segments[segment_index]
-        self.get_logger().info(f'Current route: {current_route}')
+    def follow_description_route(self, description_segments, segment_index, max_retries=3):
+        current_route = description_segments[segment_index]
         for pt in current_route:
-            if isinstance(pt, (list, tuple)) and len(pt) == 7:
-                self.get_logger().info(f'Current waypoint: {pt}')
-                
+            if isinstance(pt, (list, tuple)) and len(pt) == 7:                
                 goal_pose = self.set_goal_pose(*pt)
-                self.get_logger().info(f'Setting goal pose: {goal_pose}')
+            else:
+                continue
 
             self.navigator.goToPose(goal_pose)
             retries = 0
 
+            while not self.navigator.isTaskComplete():
+                feedback = self.navigator.getFeedback()
+                if feedback:
+                    self.get_logger().info('Distance remaining in description route: {:.2f}'.format(feedback.distance_remaining))
+
+            result = self.navigator.getResult()
+            if result == TaskResult.SUCCEEDED:
+                self.get_logger().info('Reached description goal: ({}, {})'.format(pt[0], pt[1]))
+            elif result == TaskResult.CANCELED:
+                self.get_logger().info('Description goal was canceled, exiting.')
+                return
+            elif result == TaskResult.FAILED:
+                retries += 1
+                if retries >= max_retries:
+                    self.get_logger().info('Failed to reach description goal: ({}, {}), max retries reached, exiting.'.format(pt[0], pt[1]))
+                    break
+                self.get_logger().info('Failed to reach description goal: ({}, {}), retrying...'.format(pt[0], pt[1]))
+
+
+    def follow_route_segment(self, current_route_segments, segment_index, max_retries=3):
+        current_route = current_route_segments[segment_index]
+        for pt in current_route:
+            if isinstance(pt, (list, tuple)) and len(pt) == 7:                
+                goal_pose = self.set_goal_pose(*pt)
+                self.navigator.goToPose(goal_pose)
+                retries = 0
+            
             while not self.navigator.isTaskComplete():
                 feedback = self.navigator.getFeedback()
                 if feedback:
@@ -117,21 +145,25 @@ class RobotDriver(Node):
 
 
     def patrol_work(self):
-        current_route_index = 0  # 순찰 시작점
+        self.current_state = 'Patrolling'
+        self.publish_robot_state()
 
-        while rp.ok():
-            if self.patrolling and not self.command_received:
-                if current_route_index % 2 == 0:
-                    current_route_segments = self.route_forward_segments
-                else:
-                    current_route_segments = self.route_reverse_segments
+        # 현재 경로와 방향 선택
+        current_route_segments = self.route_forward_segments if self.forward_patrol else self.route_reverse_segments
+        
+        # 경로의 현재 세그먼트 따라가기
+        self.follow_route_segment(current_route_segments, self.current_segment_index)
 
-                for segment_index in range(len(current_route_segments)):
-                    self.follow_route_segment(current_route_segments, segment_index)
-                    if self.command_received:
-                        break
+        # 세그먼트 인덱스 업데이트
+        self.current_segment_index += 1
 
-                current_route_index += 1  # 다음 순찰 방향으로 전환
+        # 경로의 끝에 도달하면 순찰 방향을 반대로 전환하고 인덱스 초기화
+        if self.current_segment_index >= len(current_route_segments):
+            self.forward_patrol = not self.forward_patrol
+            self.current_segment_index = 0
+
+        # 상태를 업데이트
+        self.current_state = 'arrive at segment {}'.format(self.current_segment_index)
                 
     def publish_robot_state(self):
         msg = RobotState()
