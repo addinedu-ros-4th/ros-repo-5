@@ -7,11 +7,13 @@ from PyQt6 import uic
 from PyQt6.QtWidgets import QApplication, QDialog, QLabel
 from PyQt6.QtGui import QPixmap, QImage, QTransform
 from PyQt6.QtCore import pyqtSignal, QThread
+from PyQt6 import QtCore
+import os
 import cv2
 import numpy as np
 from gtts import gTTS
 import pygame
-import os
+
 
 class Ros2PyQtApp(QDialog):
     # ROS2에서 수신한 데이터를 업데이트하는 신호 정의
@@ -19,7 +21,8 @@ class Ros2PyQtApp(QDialog):
 
     def __init__(self):
         super().__init__()
-        uic.loadUi("/home/jongchanjang/my_mobile/src/user_package/resource/User_GUI.ui", self)
+        
+        uic.loadUi("/home/hj/amr_ws/ROS/src/PAM_User/src/user_package/resource/User_GUI.ui", self)
         self.setWindowTitle("패트와 매트")
         
         # Map 오브젝트를 QLabel로 정의
@@ -37,11 +40,16 @@ class Ros2PyQtApp(QDialog):
         # QImage를 QPixmap으로 변환하여 QLabel에 설정
         pixmap = QPixmap.fromImage(q_image)
 
-        # 이미지를 왼쪽으로 90도 회전
-        transformed_pixmap = pixmap.transformed(QTransform().rotate(-90))
+
+        # QLabel의 크기 가져오기
+        label_width = self.map_label.width()
+        label_height = self.map_label.height()
+
+        # QPixmap을 QLabel 크기에 맞게 조정
+        scaled_pixmap = pixmap.scaled(label_width, label_height, aspectRatioMode=QtCore.Qt.AspectRatioMode.KeepAspectRatio)
 
         # QLabel에 이미지 설정
-        self.map_label.setPixmap(transformed_pixmap)
+        self.map_label.setPixmap(scaled_pixmap)
 
 
 class UserGUI(Node):
@@ -57,6 +65,8 @@ class UserGUI(Node):
             10
         )
 
+        self.pose_subscription  # prevent unused variable warning
+
         # Robot_server로 robot_command 서비스를 받아옴
         self.robot_command_server = self.create_service(CommandString, 'User_GUI/robot_command', self.robot_command_callback)
 
@@ -64,11 +74,11 @@ class UserGUI(Node):
         pygame.init()
 
         # 맵 이미지 로드
-        self.map_image = cv2.imread('/home/jongchanjang/my_mobile/MUSEUM.pgm', cv2.IMREAD_GRAYSCALE)
+        self.map_image = cv2.imread('/home/hj/amr_ws/ROS/src/PAM_Admin/map.pgm', cv2.IMREAD_GRAYSCALE)
 
         # 맵 정보 설정
         self.resolution = 0.05  # 맵의 해상도
-        self.origin = [-1.12, -2.57, 0]  # 맵의 원점
+        self.origin = [-0.327, -1.71, 0]  # 맵의 원점
 
         # 이전 로봇 위치
         self.prev_robot_pose = None
@@ -80,7 +90,7 @@ class UserGUI(Node):
         self.update_map_image()
 
         # 주기적으로 위치를 업데이트하는 타이머 설정
-        self.timer = self.create_timer(1.0, self.timer_callback)
+        self.timer = self.create_timer(0.1, self.timer_callback)
     
 
     def play_tts(self, text):
