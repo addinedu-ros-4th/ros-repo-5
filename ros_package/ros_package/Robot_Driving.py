@@ -21,14 +21,13 @@ class RobotDriver(Node):
 
         # /patrol_command 서비스를 받아오는 서비스 서버 생성
         self.patrol_command_server = self.create_service(CommandString, '/patrol_command', self.patrol_command_callback)
-            
+
         # # 기본적으로 navigator를 초기화
         self.navigator = BasicNavigator()
         self.navigator.waitUntilNav2Active()
 
         # 순찰 상태 관리
         self.current_state = 'Start'
-        self.command_received = False
         self.command_received = False
 
         # 순찰 방향을 위한 플래그
@@ -39,28 +38,24 @@ class RobotDriver(Node):
 
         # 웨이포인트 , 작품설명위치
         self.goal_poses = [
-            ((0.8, 0.8, 0.0), (0.0, 0.0, 0.0)),  # 첫 번째 목표 지점
-            ((1.3, 4.0, 0.0), (0.0, 0.0, 0.0)),  # 두 번째 목표 지점
-            ((6.0, 3.7, 0.0), (0.0, 0.0, 0.0)),  # 세 번째 목표 지점
-            ((6.0, 0.0, 0.0), (0.0, 0.0, 0.0)),  # 네 번째 목표 지점
-            ((10.0, 0.0, 0.0), (0.0, 0.0, 0.0)),  # 다섯 번째 목표 지점
-            ((10.0, 3.3, 0.0), (0.0, 0.0, 0.0)),  # 여섯 번째 목표 지점
-            ((15.0, 2.8, 0.0), (0.0, 0.0, 0.0)),  # 일곱 번째 목표 지점
-            ((15.0, 0.0, 0.0), (0.0, 0.0, 0.0)),  # 여덟 번째 목표 지점
+            ((0.00426, -0.143, -0.00143), (0.0, 0.0, 0.0)),  # 첫 번째 목표 지점
+            ((1, -0.143, -0.00137), (0.0, 0.0, 0.0)),  # 두 번째 목표 지점
+            ((1, -1.15, -0.00143), (0.0, 0.0, 0.0)),  # 세 번째 목표 지점
+            ((0.2, -1.15, -0.00143), (0.0, 0.0, 0.0)),  # 네 번째 목표 지점
+            ((0.2, -2.23, -0.00143), (0.0, 0.0, 0.0)),  # 다섯 번째 목표 지점
+            ((1, -2,23, -0.00143), (0.0, 0.0, 0.0)),  # 여섯 번째 목표 지점
         ]
 
-        self.goal_poses_art = ['피라미드','2','나폴레옹','스핑크스','오벨리스크','람세스','7','오시리스'] # 작품위치에 따른 작품명
+        self.goal_poses_art = ['강아지','2','고양이','초록양','5','갈색말'] # 작품위치에 따른 작품명
         self.current_art = None
 
         self.point = [
             ((2.2,1.6,0.0),(0.0,0.0,0.0,0.0)), # 첫번째 목표 지점의 작품설명위치
-            ((0.0,0.0,0.0),(0.0,0.0,0.0,0.0)), # 두번째 목표 지점의 작품설명위치
+            ((0.0,0.0,0.0),(0.0,0.0,0.0,0.0)), # 두번째 목표 지점의 작품설명위치(작품없음)
             ((7.5,2.0,0.0),(0.0,0.0,0.0,0.0)), # 세번째 목표 지점의 작품설명위치
             ((4.6,1.8,0.0),(0.0,0.0,0.0,0.0)), # 네번째 목표 지점의 작품설명위치
-            ((12.0,1.6,0.0),(0.0,0.0,0.0,0.0)), # 다섯번째 목표 지점의 작품설명위치
+            ((0.0,0.0,0.0),(0.0,0.0,0.0,0.0)), # 두번째 목표 지점의 작품설명위치(작품없음)
             ((9.0,1.2,0.0),(0.0,0.0,0.0,0.0)), # 여섯번째 목표 지점의 작품설명위치
-            ((0.0,0.0,0.0),(0.0,0.0,0.0,0.0)), # 일곱번째 목표 지점의 작품설명위치
-            ((13.6,1.2,0.0),(0.0,0.0,0.0,0.0)), # 여덟번째 목표 지점의 작품설명위치
         ]
         
         # 스타트 신호
@@ -137,7 +132,7 @@ class RobotDriver(Node):
             self.get_logger().info('Goal failed at ({}, {}, {})!'.format(goal_x, goal_y, goal_z))
 
 
-        if self.index in [1, 6]:
+        if self.index in [1, 4]:
             self.current_state = 'not item at {}'.format(self.goal_poses_art[self.index])
         else:
             self.current_state = 'arrive at {}'.format(self.goal_poses_art[self.index])
@@ -378,17 +373,21 @@ class RobotDriver(Node):
 
         
         # 다음 웨이포인트 설정
-        if self.art_index in [0, 1, 2, 3]:
-            self.index = self.art_index + 1
+        # 원래 방향이 위로가는거면  +1을 해서 위로 가고, 만약 6번 웨이포인트면 -1을 하고 아래로
+        # 원래 방향이 아래가는거면  -11을 해서 아래로 가고, 만약 1번 웨이포인트면 +1을 하고 위로
+        
+        if self.forward_patrol == True:
+            if self.art_index is not [5]:
+                self.index = self.art_index + 1
+            else:
+                self.index = self.art_index - 1
+                self.forward_patrol == False
         else:
-            self.index = self.art_index - 1
-
-
-        #밑의 4개 점이면 위로향하게 , 위의 4개 점이면 아래로 향하게
-        if self.art_index in [0, 1, 2, 3]:
-            self.forward_patrol = True
-        else:
-            self.forward_patrol = False
+            if self.art_index is not [0]:
+                self.index = self.art_index - 1
+            else:
+                self.index = self.art_index + 1
+                self.forward_patrol == True
 
 
 def main(args=None):

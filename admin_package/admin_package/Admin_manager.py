@@ -84,14 +84,14 @@ class Admin_Manager(Node):
 
 
     def detect_people(self, model, img):
-            self.get_logger().info('DETECTING-DETECTING-DETECTING')
+        self.get_logger().info('DETECTING-DETECTING-DETECTING')
 
-            results = model(img)
-            detected_objects = results.pandas().xyxy[0]
-            people_detected = detected_objects[detected_objects['name'] == 'person']
-            print(len(people_detected))
+        results = model(img)
+        detected_objects = results.pandas().xyxy[0]
+        people_detected = detected_objects[detected_objects['name'] == 'person']
+        print(len(people_detected))
 
-            return True if len(people_detected) > 0 else False
+        return True if len(people_detected) > 0 else False
         
 
     def camera_callback(self, msg):
@@ -146,7 +146,7 @@ class Admin_Manager(Node):
         text = msg.command
         print(text)
 
-        keywords = ["피라미드", "나폴레옹", "스핑크스", "오벨리스크", "람세스", "오시리스"]
+        keywords = ["강아지", "고양이", "갈색말", "초록양"]
 
         if "설명" in text:
             self.get_logger().info("Description command detected!")
@@ -163,7 +163,7 @@ class Admin_Manager(Node):
             for keyword in keywords:
                 if keyword in text:
                     self.get_logger().info(f"Extracted artwork name: {keyword}")
-                    self.db_manager.insert_event_log(self.name, "guide")
+                    self.db_manager.insert_event_log(keyword, "guide")
                     self.send_robot_command("guide", keyword)
                     keyword_found = True
                     break

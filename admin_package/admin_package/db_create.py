@@ -105,9 +105,8 @@ if __name__ == "__main__":
     db_manager.create_table()
 
     # 데이터 삽입
-    db_manager.insert_script('피라미드', '피라미드는 고대 이집트의 거대한 무덤입니다.')
-    db_manager.insert_script('나폴레옹', '나폴레옹은 19세기 프랑스 황제로, 유럽을 정복한 군사 지도자입니다.')
-    db_manager.insert_script('스핑크스', '스핑크스는 고대 이집트의 사자 몸에 사람 머리 석상입니다.')
-    db_manager.insert_script('오벨리스크', '오벨리스크는 고대 이집트의 뾰족한 돌기둥 기념물입니다.')
-    db_manager.insert_script('람세스', '람세스는 고대 이집트의 파라오입니다.')
-    db_manager.insert_script('오시리스', '오시리스는 고대 이집트 신화의 지하의 왕입니다.')
+    db_manager.insert_script('강아지', '충실하고 충성스러운 강아지는, 인간의 가장 충실한 동반자로서 우정과 충실함을 상징합니다.')
+    db_manager.insert_script('고양이', '우아하고 독립적인 존재 고양이는, 그림자 속에서 조용히 미묘한 아름다움을 표현하며 신비로움과 자유를 대표합니다.')
+    db_manager.insert_script('초록양', '초록 초장을 향해 움직이는 양은 자연의 조화와 평온을 상징하며, 우리가 잊고 있던 간결한 아름다움을 알려줍니다.')
+    db_manager.insert_script('갈색말', '넓은 목초지를 누비며 힘차게 달리는 말은 자유와 전유의 상징이자 우아함과 힘의 화려한 조화를 상징합니다.')
+

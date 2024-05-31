@@ -63,12 +63,16 @@ class Ros2PyQtApp(QMainWindow):
         # QImage를 QPixmap으로 변환하여 QLabel에 설정
         pixmap = QPixmap.fromImage(q_image)
 
+
+        # 이미지를 왼쪽으로 90도 회전
+        transformed_pixmap = pixmap.transformed(QTransform().rotate(90))
+
         # QLabel의 크기 가져오기
         label_width = self.map_label.width()
         label_height = self.map_label.height()
 
         # QPixmap을 QLabel 크기에 맞게 조정
-        scaled_pixmap = pixmap.scaled(label_width, label_height, aspectRatioMode=QtCore.Qt.AspectRatioMode.KeepAspectRatio)
+        scaled_pixmap = transformed_pixmap.scaled(label_width, label_height, aspectRatioMode=QtCore.Qt.AspectRatioMode.KeepAspectRatio)
 
         # QLabel에 이미지 설정
         self.map_label.setPixmap(scaled_pixmap)
@@ -123,11 +127,11 @@ class MapSubscriber(Node):
         self.subscription  # prevent unused variable warning
 
         # 맵 이미지 로드
-        self.map_image = cv2.imread('/home/jongchanjang/my_mobile/MUSEUM.pgm', cv2.IMREAD_GRAYSCALE)
+        self.map_image = cv2.imread('/home/jongchanjang/my_mobile/map.png', cv2.IMREAD_GRAYSCALE)
 
         # 맵 정보 설정
         self.resolution = 0.05  # 맵의 해상도
-        self.origin = [-1.12, -2.57, 0]  # 맵의 원점
+        self.origin = [-0.25, -3.15, 0]  # 맵의 원점
 
         # 이전 로봇 위치
         self.prev_robot_pose = None

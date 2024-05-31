@@ -20,6 +20,9 @@ class VoiceRecognitionNode(Node):
         # Queue for storing recognized texts
         self.text_queue = []
 
+        # 큐에 새로운 텍스트가 추가되었을 때 알림을 위한 조건 변수
+        self.text_queue_condition = threading.Condition()
+
         # Stop callback 설정
         self.recorder.set_stop_callback(self.stop_threads)
 
@@ -84,8 +87,15 @@ class VoiceRecognitionNode(Node):
                 self.text_queue.append(text)
             else:
                 print(f"Speech recognition could not understand audio: {latest_file_path}")
+                # 음성 인식 실패 시 빈 문자열 추가
+                self.text_queue.append("")
+
             if os.path.exists(latest_file_path):
                 os.remove(latest_file_path)
+
+            # 큐에 새로운 텍스트가 추가되었음을 알림
+            with self.text_queue_condition:
+                self.text_queue_condition.notify_all()
 
     def monitor_file_system(self):
         """파일 시스템 모니터링 스레드"""
@@ -101,21 +111,30 @@ class VoiceRecognitionNode(Node):
                     print("Recognized text:", text)
                     self.text_queue.append(text)
                 else:
-                    text = ""
                     print(f"Speech recognition could not understand audio: {latest_file_path}")
-                    self.text_queue.append(text)
+                    # 음성 인식 실패 시 빈 문자열 추가
+                    self.text_queue.append("")
+
                 if os.path.exists(latest_file_path):
                     os.remove(latest_file_path)
+
+                # 큐에 새로운 텍스트가 추가되었음을 알림
+                with self.text_queue_condition:
+                    self.text_queue_condition.notify_all()
+
             time.sleep(1)
         print("Monitoring thread stopped.")
 
     def publish_recognized_text(self):
         """인식된 텍스트를 발행하는 스레드"""
         while rclpy.ok():
-            if self.text_queue:
-                text = self.text_queue.pop(0)
-                self.send_to_ros2(text)
-                self.restart_node()  # 텍스트 발행 후 노드 재시작
+            with self.text_queue_condition:
+                # 큐에 새로운 텍스트가 추가될 때까지 대기
+                self.text_queue_condition.wait_for(lambda: len(self.text_queue) > 0)
+                if self.text_queue:
+                    text = self.text_queue.pop(0)
+                    self.send_to_ros2(text)
+                    self.restart_node()  # 텍스트 발행 후 노드 재시작
             time.sleep(1)
         print("Publishing thread stopped.")
 
