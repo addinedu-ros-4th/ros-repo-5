@@ -14,6 +14,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch' , glob.glob(os.path.join('launch','*.launch.py'))),
     ],
+    py_modules=['ros_package.routes'],  # routes 모듈 추가
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='jongchanjang',

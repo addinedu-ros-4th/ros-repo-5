@@ -24,6 +24,8 @@ class CameraNode(Node):
         ret, frame = self.cap.read()
         if ret:
             # OpenCV 이미지를 ROS 이미지 메시지로 변환
+            frame = cv2.rotate(frame, cv2.ROTATE_180)
+
             ros_image = self.bridge.cv2_to_imgmsg(frame, "bgr8")
 
             # /camera 토픽으로 영상 메시지 발행
