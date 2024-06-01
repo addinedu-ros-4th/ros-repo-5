@@ -41,10 +41,14 @@ class RobotDriver(Node):
         
         self.route_reverse_segments = routes.route_reverse_segments
         
-        self.route_forward_description = routes.route_forward_description
-
-        self.route_reverse_description = routes.route_forward_description
+        self.route_description = routes.route_description
         
+        self.route_forward_guide_segments = routes.route_forward_guide_segments
+        
+        self.route_reverse_guide_segments = routes.route_reverse_guide_segments
+        
+        self.route_return_segments = routes.route_return_segments
+                
         self.set_initial_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
         
         self.goal_poses_art = ['강아지','2','고양이','초록양','5','갈색말'] # 작품위치에 따른 작품명
@@ -91,36 +95,6 @@ class RobotDriver(Node):
         initial_pose.pose.orientation.z = qz
         initial_pose.pose.orientation.w = qw
         self.navigator.setInitialPose(initial_pose)
-
-    def follow_description_route(self, description_segments, segment_index, max_retries=3):
-        current_route = description_segments[segment_index]
-        for pt in current_route:
-            if isinstance(pt, (list, tuple)) and len(pt) == 7:                
-                goal_pose = self.set_goal_pose(*pt)
-            else:
-                continue
-
-            self.navigator.goToPose(goal_pose)
-            retries = 0
-
-            while not self.navigator.isTaskComplete():
-                feedback = self.navigator.getFeedback()
-                if feedback:
-                    self.get_logger().info('Distance remaining in description route: {:.2f}'.format(feedback.distance_remaining))
-
-            result = self.navigator.getResult()
-            if result == TaskResult.SUCCEEDED:
-                self.get_logger().info('Reached description goal: ({}, {})'.format(pt[0], pt[1]))
-            elif result == TaskResult.CANCELED:
-                self.get_logger().info('Description goal was canceled, exiting.')
-                return
-            elif result == TaskResult.FAILED:
-                retries += 1
-                if retries >= max_retries:
-                    self.get_logger().info('Failed to reach description goal: ({}, {}), max retries reached, exiting.'.format(pt[0], pt[1]))
-                    break
-                self.get_logger().info('Failed to reach description goal: ({}, {}), retrying...'.format(pt[0], pt[1]))
-
 
     def follow_route_segment(self, current_route_segments, segment_index, max_retries=3):
         current_route = current_route_segments[segment_index]
@@ -172,8 +146,9 @@ class RobotDriver(Node):
             self.forward_patrol = not self.forward_patrol
             self.current_segment_index = 0
 
+        art_point = self.current_point - 1
         # 상태를 업데이트
-        self.art = self.goal_poses_art[self.current_segment_index]  # 수정된 부분
+        self.art = self.goal_poses_art[art_point]  # 수정된 부분
         self.current_state = 'arrive at {}'.format(self.art)  # 작품명에 도착
                
 
@@ -257,121 +232,56 @@ class RobotDriver(Node):
 
         return response
     
-
+    def get_description_index(self, current_point):
+        if current_point == 1:
+            return 0
+        elif current_point == 3:
+            return 1
+        elif current_point == 4:
+            return 2
+        elif current_point == 6:
+            return 3
+    
     def handle_human_detect(self):
         self.get_logger().info('human_detect.')
-
-        description_segments = self.route_forward_description 
-
-        self.follow_description_route(description_segments,self.current_segment_index)
+        self.description_index = self.get_description_index(self.current_point)      
+        self.follow_route_segment(self.route_description, self.description_index)
         
 
     def handle_guide(self, description):
         self.get_logger().info('Robot guiding to description location.')
 
-        self.art_index = self.goal_poses_art.index(description) #작품명이 몇번째인지 확인
-
-        self.descript_point = self.point[self.art_index] # i를 받은 작품설명 위치
-
-        goal_pose , orientation = self.descript_point # 작품설명위치의 위치와 자세
-
-        goal_x, goal_y, goal_z = goal_pose
-        goal_orientation_x, goal_orientation_y, goal_orientation_z, goal_orientation_w = orientation
-
-        goal_pose_msg = PoseStamped()
-        goal_pose_msg.header.frame_id = 'map'
-        goal_pose_msg.header.stamp = self.get_clock().now().to_msg()
-        goal_pose_msg.pose.position.x = goal_x
-        goal_pose_msg.pose.position.y = goal_y
-        goal_pose_msg.pose.position.z = goal_z
-        goal_pose_msg.pose.orientation.x = goal_orientation_x
-        goal_pose_msg.pose.orientation.y = goal_orientation_y
-        goal_pose_msg.pose.orientation.z = goal_orientation_z
-        goal_pose_msg.pose.orientation.w = goal_orientation_w
-
-        self.navigator.goToPose(goal_pose_msg)
-
-        start_time = time.time()
-        timeout = 90  # 90초 타임아웃
-
-        while not self.navigator.isTaskComplete():
-            if time.time() - start_time > timeout:
-                self.navigator.cancelTask()
-                self.get_logger().warn('Navigation to goal timed out!')
-                break
-            time.sleep(0.1)
-
-        result = self.navigator.getResult()
+        # 현재 위치 인덱스와 목표 작품 인덱스 확인
+        self.art_index = self.goal_poses_art.index(description)
+        self.description_index = self.get_description_index(self.current_point)
         
-        if result == TaskResult.SUCCEEDED:
-            self.get_logger().info('Arrived at the location!')
+        # 경로의 방향 결정 (정방향 또는 역방향)
+        if self.art_index > self.description_index:
+            current_route_segments = self.route_forward_segments
+            start_index = self.description_index
+            end_index = self.art_index
+        else:
+            current_route_segments = self.route_reverse_segments
+            start_index = 5 - self.description_index
+            end_index = 5 - self.art_index
 
-        elif result == TaskResult.CANCELED:
-            self.get_logger().info('Navigation to location was canceled!')
+        # 주행 경로를 따라 순차적으로 주행
+        for index in range(start_index, end_index + 1):
+            self.follow_route_segment(current_route_segments, index)
 
-        elif result == TaskResult.FAILED:
-            self.get_logger().info('Navigation to location failed!')
-
-        self.current_state = 'guide at {}'.format(description)
-
+        # 도착 상태로 업데이트
+        self.current_state = 'Arrived at {}'.format(description)
         self.publish_robot_state()
 
 
     def comeback_to_patrol(self):
-
-        # 가까운 웨이포인트로 이동
-        goal_pose, orientation = self.goal_poses[self.art_index]
-
-        goal_x, goal_y, goal_z = goal_pose
-        goal_orientation_x, goal_orientation_y, goal_orientation_z = orientation
-
-        goal_pose_msg = PoseStamped()
-        goal_pose_msg.header.frame_id = 'map'
-        goal_pose_msg.header.stamp = self.get_clock().now().to_msg()
-        goal_pose_msg.pose.position.x = goal_x
-        goal_pose_msg.pose.position.y = goal_y
-        goal_pose_msg.pose.position.z = goal_z
-        goal_pose_msg.pose.orientation.x = goal_orientation_x
-        goal_pose_msg.pose.orientation.y = goal_orientation_y
-        goal_pose_msg.pose.orientation.z = goal_orientation_z
-        goal_pose_msg.pose.orientation.w = 1.0
-
-        self.navigator.goToPose(goal_pose_msg)
-
-        start_time = time.time()
-        timeout = 12  # 12초 타임아웃
-
-        while not self.navigator.isTaskComplete():
-            if time.time() - start_time > timeout:
-                self.navigator.cancelTask()
-                self.get_logger().warn('Navigation to goal timed out!')
-                break
-            time.sleep(0.1)
-
-        result = self.navigator.getResult()
+        self.get_logger().info('Returning to patrol route.')
         
-        if result == TaskResult.SUCCEEDED:
-            self.get_logger().info('Arrived at the description location!')
-
-        elif result == TaskResult.CANCELED:
-            self.get_logger().info('Navigation to description location was canceled!')
-
-        elif result == TaskResult.FAILED:
-            self.get_logger().info('Navigation to description location failed!')
-
+        # 주행 경로를 따라 주행
+        self.follow_route_segment(self.route_return_segments, self.description_index)
         
-        # 다음 웨이포인트 설정
-        if self.art_index in [0, 1, 2, 3]:
-            self.index = self.art_index + 1
-        else:
-            self.index = self.art_index - 1
-
-
-        #밑의 4개 점이면 위로향하게 , 위의 4개 점이면 아래로 향하게
-        if self.art_index in [0, 1, 2, 3]:
-            self.forward_patrol = True
-        else:
-            self.forward_patrol = False
+        self.get_logger().info('Returned to patrol route at segment index: {}'.format(self.description_index))
+            
 
 
 def main(args=None):
