@@ -36,40 +36,35 @@ class RobotDriver(Node):
         self.forward_patrol = True
 
         # 순찰 경로 정의
-              
         self.route_forward_segments = routes.route_forward_segments
-        
         self.route_reverse_segments = routes.route_reverse_segments
-        
         self.route_description = routes.route_description
-        
         self.route_forward_guide_segments = routes.route_forward_guide_segments
-        
         self.route_reverse_guide_segments = routes.route_reverse_guide_segments
-        
         self.route_return_segments = routes.route_return_segments
-                
+
+        # 초기 위치 설정
         self.set_initial_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
         
-        self.goal_poses_art = ['강아지','2','고양이','초록양','5','갈색말'] # 작품위치에 따른 작품명
+        # 작품 위치에 따른 작품명
+        self.goal_poses_art = ['강아지','2','고양이','초록양','5','갈색말']
         self.current_art = None
+
+        # 상태 잠금 장치
+        self.state_lock = threading.Lock()
+
         # 스타트 신호
-        self.publish_robot_state()
+        self.update_state('start')
 
         # 1번 웨이포인트로 이동
         self.patrol_work()
 
-        # 멈춤상태 신호
-        self.publish_robot_state()
-        
     def publish_robot_state(self):
         msg = RobotState()
         msg.command = self.current_state
-
         self.robot_state_pose_publisher.publish(msg)
         self.get_logger().info('Send msg')
 
-        
     def set_goal_pose(self, x, y, z, qx, qy, qz, qw):
         goal_pose = PoseStamped()
         goal_pose.header.frame_id = 'map'
@@ -126,10 +121,8 @@ class RobotDriver(Node):
                     break
                 self.get_logger().info('Failed to reach goal: ({}, {}), retrying...'.format(pt[0], pt[1]))
 
-
     def patrol_work(self):
-        self.current_state = 'Patrolling'
-        self.publish_robot_state()
+        self.update_state('Patrolling')
 
         # 현재 경로와 방향 선택
         current_route_segments = self.route_forward_segments if self.forward_patrol else self.route_reverse_segments
@@ -148,87 +141,58 @@ class RobotDriver(Node):
 
         art_point = self.current_point - 1
         # 상태를 업데이트
-        self.art = self.goal_poses_art[art_point]  # 수정된 부분
-        self.current_state = 'arrive at {}'.format(self.art)  # 작품명에 도착
-               
+        self.current_art = self.goal_poses_art[art_point]
+        self.update_state('Arrive at {}'.format(self.current_art))
 
     def patrol_command_callback(self, request, response):
-
         self.get_logger().info('Patrol Command Server started')
 
         if request.command == "patrol":
             self.get_logger().info('Received patrol')
             response.success = True
             response.message = 'patrol'   
-
-            self.current_state = 'Patrolling'
-
-            self.publish_robot_state()
-        
+            self.update_state('Patrolling')
             self.patrol_work()
-
-            self.publish_robot_state()
+        else:
+            response.success = False
+            response.message = 'Unknown command'
 
         return response
 
-
     def robot_command_callback(self, request, response):
-        
         self.get_logger().info('Robot Command Server started')
 
         if request.command == "human_detect":
             self.get_logger().info('Received human_detect')
             response.success = True
             response.message = 'human_detect'   
-
-            self.current_state = 'Human Detection'
-
-            self.publish_robot_state()
-
+            self.update_state('Human Detection')
             self.handle_human_detect()
-
 
         elif request.command == "description":
             self.get_logger().info('Received description')
             response.success = True
             response.message = 'description'
-
-            self.current_state = 'Description'
-
-            self.publish_robot_state()
-
+            self.update_state('Description')
 
         elif request.command == "guide":
             self.get_logger().info('Received guide')
             response.success = True
             response.message = 'guide'
-
-            self.current_state = 'Guiding'
-
-            self.publish_robot_state()
-
+            self.update_state('Guiding')
             self.handle_guide(request.description)
 
         elif request.command == "comeback":
             self.get_logger().info('Received comeback')
             response.success = True
             response.message = 'comeback'
-
-            self.current_state = 'comeback_to_patrol'
-
-            self.publish_robot_state()
-
+            self.update_state('comeback_to_patrol')
             self.comeback_to_patrol()
-
             self.patrol_work()
-
-            self.publish_robot_state()
-
         else:
             self.get_logger().error('Received Unknown')
             response.success = False
-            response.message = 'Unknown'
-
+            response.message = 'Unknown command'
 
         return response
     
@@ -246,7 +210,6 @@ class RobotDriver(Node):
         self.get_logger().info('human_detect.')
         self.description_index = self.get_description_index(self.current_point)      
         self.follow_route_segment(self.route_description, self.description_index)
-        
 
     def handle_guide(self, description):
         self.get_logger().info('Robot guiding to description location.')
@@ -270,27 +233,18 @@ class RobotDriver(Node):
             self.follow_route_segment(current_route_segments, index)
 
         # 도착 상태로 업데이트
-        self.current_state = 'Arrived at {}'.format(description)
-        self.publish_robot_state()
-
+        self.update_state('Arrived at {}'.format(description))
 
     def comeback_to_patrol(self):
         self.get_logger().info('Returning to patrol route.')
-        
-        # 주행 경로를 따라 주행
         self.follow_route_segment(self.route_return_segments, self.description_index)
-        
         self.get_logger().info('Returned to patrol route at segment index: {}'.format(self.description_index))
-            
 
 
 def main(args=None):
     rp.init(args=args)
-
     robot_driving = RobotDriver()
-
     rp.spin(robot_driving)
-
     robot_driving.destroy_node()
     rp.shutdown()
 
