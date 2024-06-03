@@ -19,23 +19,24 @@ class VoiceRecognitionNode(Node):
 
         # Queue for storing recognized texts
         self.text_queue = []
+        self.lock = threading.Lock()
 
-        # 큐에 새로운 텍스트가 추가되었을 때 알림을 위한 조건 변수
+        # Queue condition variable
         self.text_queue_condition = threading.Condition()
 
         # Stop callback 설정
         self.recorder.set_stop_callback(self.stop_threads)
 
-        # 스레드 초기화
+        # Initialize threads
         self.monitor_thread = threading.Thread(target=self.monitor_file_system)
         self.publish_thread = threading.Thread(target=self.publish_recognized_text)
 
-        # 스레드 시작
+        # Start threads
         self.monitor_thread.start()
         self.publish_thread.start()
 
     def stop_threads(self):
-        """녹음이 중지될 때 스레드를 멈추는 함수"""
+        """Stops the recording and processing threads."""
         if self.running:
             self.running = False
             if self.recording_thread and self.recording_thread.is_alive():
@@ -47,7 +48,7 @@ class VoiceRecognitionNode(Node):
             self.recorder.stop_recording()
 
     def record_and_process(self):
-        """녹음 및 처리 스레드"""
+        """Starts the recording and processing thread."""
         self.running = True
         self.recording_thread = threading.Thread(target=self._record_and_process)
         self.recording_thread.start()
@@ -75,78 +76,51 @@ class VoiceRecognitionNode(Node):
             self.stop_threads()
 
     def process_audio_files(self):
-        """음성을 처리하고 텍스트를 큐에 추가하는 함수"""
-        directory = "/home/jongchanjang/my_mobile/src/ros_package/resource/mic_data"
+        """Processes the recorded audio files and adds recognized text to the queue."""
+        directory = os.getenv('MIC_DATA_DIR', '/home/jongchanjang/my_mobile/src/ros_package/resource/mic_data')
         if os.listdir(directory):
             latest_file = sorted(os.listdir(directory))[-1]
             latest_file_path = os.path.join(directory, latest_file)
             print("Processing file:", latest_file_path)
             text = audio_to_text(latest_file_path)
-            if text:
-                print("Recognized text:", text)
-                self.text_queue.append(text)
-            else:
-                print(f"Speech recognition could not understand audio: {latest_file_path}")
-                # 음성 인식 실패 시 빈 문자열 추가
-                self.text_queue.append("")
-
-            if os.path.exists(latest_file_path):
-                os.remove(latest_file_path)
-
-            # 큐에 새로운 텍스트가 추가되었음을 알림
-            with self.text_queue_condition:
-                self.text_queue_condition.notify_all()
-
-    def monitor_file_system(self):
-        """파일 시스템 모니터링 스레드"""
-        directory = "/home/jongchanjang/my_mobile/src/ros_package/resource/mic_data"
-        print("Monitoring directory:", directory)
-        while rclpy.ok():
-            if os.listdir(directory):
-                latest_file = sorted(os.listdir(directory))[-1]
-                latest_file_path = os.path.join(directory, latest_file)
-                print("Processing file:", latest_file_path)
-                text = audio_to_text(latest_file_path)
+            with self.lock:
                 if text:
                     print("Recognized text:", text)
                     self.text_queue.append(text)
                 else:
                     print(f"Speech recognition could not understand audio: {latest_file_path}")
-                    # 음성 인식 실패 시 빈 문자열 추가
                     self.text_queue.append("")
 
-                if os.path.exists(latest_file_path):
-                    os.remove(latest_file_path)
+            if os.path.exists(latest_file_path):
+                os.remove(latest_file_path)
 
-                # 큐에 새로운 텍스트가 추가되었음을 알림
-                with self.text_queue_condition:
-                    self.text_queue_condition.notify_all()
+            with self.text_queue_condition:
+                self.text_queue_condition.notify_all()
 
+    def monitor_file_system(self):
+        """Monitors the file system for new audio files."""
+        directory = os.getenv('MIC_DATA_DIR', '/home/jongchanjang/my_mobile/src/ros_package/resource/mic_data')
+        print("Monitoring directory:", directory)
+        while rclpy.ok():
+            if os.listdir(directory):
+                self.process_audio_files()
             time.sleep(1)
         print("Monitoring thread stopped.")
 
     def publish_recognized_text(self):
-        """인식된 텍스트를 발행하는 스레드"""
+        """Publishes recognized text from the queue to a ROS 2 topic."""
         while rclpy.ok():
             with self.text_queue_condition:
-                # 큐에 새로운 텍스트가 추가될 때까지 대기
                 self.text_queue_condition.wait_for(lambda: len(self.text_queue) > 0)
-                if self.text_queue:
-                    text = self.text_queue.pop(0)
-                    self.send_to_ros2(text)
-                    self.restart_node()  # 텍스트 발행 후 노드 재시작
+                with self.lock:
+                    if self.text_queue:
+                        text = self.text_queue.pop(0)
+                        self.send_to_ros2(text)
             time.sleep(1)
         print("Publishing thread stopped.")
 
-    def restart_node(self):
-        """노드를 재시작하는 메서드"""
-        print("Restarting node...")
-        rclpy.shutdown()
-        os.execv(sys.executable, ['python3'] + sys.argv)
-
-
     def send_to_ros2(self, text):
-        """ROS 2 메시지를 발행하는 함수"""
+        """Publishes the recognized text as a ROS 2 message."""
         msg = Voice()
         msg.command = text
         self.publisher_.publish(msg)
@@ -158,7 +132,7 @@ class VoiceNode(Node):
         self.voice_signal_server = self.create_service(CommandString, '/voice_signal', self.voice_signal_callback)
 
     def voice_signal_callback(self, request, response):
-        """Callback function for voice start command"""
+        """Callback function for voice start command."""
         self.get_logger().info('Voice signal received')
 
         if request.command == "voice_start":
