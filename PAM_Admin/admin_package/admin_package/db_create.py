@@ -7,7 +7,7 @@ class DatabaseCreate:
         self.db_name = "ros_final"
         self.cur = None
         self.conn = None
-        self.password = "1234"
+        self.password = "guswns123"
 
     def connect_database(self, db_name=None):
         if db_name is None:

@@ -152,7 +152,9 @@ class Admin_Manager(Node):
 
         if "설명" in text:
             self.get_logger().info("Description command detected!")
+            self.get_logger().info(f"self.name : {self.name}")
             script = self.db_manager.find_script_by_name(self.name)
+            self.get_logger().info(f"script : {script}")
             self.db_manager.insert_event_log(self.name, "description")
             self.send_robot_command("description", script)
 
@@ -178,14 +180,18 @@ class Admin_Manager(Node):
             self.send_robot_command("comeback")
 
 
-    def send_robot_command(self, command: str, description: str = ""):
+    def send_robot_command(self, command: str, description : str = "None"):
         if not self.robot_command_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().error('Robot_command service not available')
             
         request = CommandString.Request()
         request.command = command
+        
+        if not isinstance(description, str):
+            self.get_logger().error('Description must be a string')
+            description = str(description)
         request.description = description
-
+        
         future = self.robot_command_client.call_async(request)
         future.add_done_callback(self.send_robot_command_callback)
 
