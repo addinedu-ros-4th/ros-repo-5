@@ -67,8 +67,6 @@ class RobotDriver(Node):
         msg.command = self.current_state
 
         self.robot_state_pose_publisher.publish(msg)
-        self.get_logger().info('Send msg')
-
         
     def set_goal_pose(self, x, y, z, qx, qy, qz, qw):
         goal_pose = PoseStamped()

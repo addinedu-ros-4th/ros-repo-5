@@ -1,17 +1,14 @@
 import pyaudio
-import struct
-import numpy as np
 import wave
 import os
 import time
 
 class VoiceRecorder:
-    def __init__(self, threshold_energy=100):
+    def __init__(self):
         self.FORMAT = pyaudio.paInt16
         self.CHANNELS = 1
         self.RATE = 16000
         self.CHUNK = 1024
-        self.THRESHOLD_ENERGY = threshold_energy
         self.audio_path = ""
         self.is_recording = False
         self.audio = pyaudio.PyAudio()
@@ -23,42 +20,28 @@ class VoiceRecorder:
         """녹음이 중지될 때 호출되는 콜백 함수 설정"""
         self.stop_callback = stop_callback
 
-    def start_recording(self, duration=4):
+    def start_recording(self, duration=10):
         """시작 녹음 함수"""
         self.frames = []
         self.stream = self.audio.open(format=self.FORMAT, channels=self.CHANNELS,
-                                     rate=self.RATE, input=True,
-                                     frames_per_buffer=self.CHUNK)
+                                      rate=self.RATE, input=True,
+                                      frames_per_buffer=self.CHUNK)
         print("Listening...")
         self.is_recording = True
 
-        # Record for `duration` seconds initially
+        # Record for `duration` seconds
         start_time = time.time()
         while time.time() - start_time < duration and self.is_recording:
             data = self.stream.read(self.CHUNK)
             self.frames.append(data)
 
-        # Then continue recording and check for voice activity
-        try:
-            while self.is_recording:
-                data = self.stream.read(self.CHUNK)
-                self.frames.append(data)
-                samples = struct.unpack(f'{self.CHUNK}h', data)
-                energy = np.sum(np.square(samples)) / self.CHUNK
-                print(f'Energy: {energy}')
-                
-                if energy < self.THRESHOLD_ENERGY:
-                    print("Voice activity detected! Saving recording...")
-                    self.save_recording()
-                    break  # Exit the loop after saving the recording
-        except Exception as e:
-            print(f"Error during recording: {e}")
-        finally:
-            self.stop_recording()
+        print("Recording time limit reached! Saving recording...")
+        self.save_recording()
+        self.stop_recording()
 
     def save_recording(self):
         """녹음 파일을 저장하는 함수"""
-        path = "/home/jongchanjang/my_mobile/src/ros_package/resource/mic_data"
+        path = "/home/hj_rpi/PAM_Robot/src/ros_package/resource/mic_data"
         
         # Create directory if it does not exist
         if not os.path.exists(path):

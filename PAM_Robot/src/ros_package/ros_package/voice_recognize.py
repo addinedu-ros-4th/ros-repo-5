@@ -9,182 +9,136 @@ import threading
 import time
 import sys
 
-class VoiceRecognitionNode(Node):
+class VoiceRecognize:
     def __init__(self):
-        super().__init__('voice_recognition_node')
+        # 음성 녹음을 위한 VoiceRecorder 인스턴스 생성
         self.recorder = VoiceRecorder()
-        self.publisher_ = self.create_publisher(Voice, '/recognized_text', 10)
+        # 녹음 및 처리 상태를 나타내는 플래그
         self.running = False
+        # 녹음 및 처리를 담당하는 스레드
         self.recording_thread = None
-
-        # Queue for storing recognized texts
+        # 파일 모니터링을 담당하는 스레드
+        self.file_monitor_thread = None
+        # 인식된 텍스트를 저장하는 큐
         self.text_queue = []
-
-        # 큐에 새로운 텍스트가 추가되었을 때 알림을 위한 조건 변수
+        # 큐에 새로운 텍스트가 추가될 때 알림을 위한 조건 변수
         self.text_queue_condition = threading.Condition()
-
-        # Stop callback 설정
-        self.recorder.set_stop_callback(self.stop_threads)
-
-        # 스레드 초기화
-        self.monitor_thread = threading.Thread(target=self.monitor_file_system)
-        self.publish_thread = threading.Thread(target=self.publish_recognized_text)
-
-        # 스레드 시작
-        self.monitor_thread.start()
-        self.publish_thread.start()
-
-    def stop_threads(self):
-        """녹음이 중지될 때 스레드를 멈추는 함수"""
-        if self.running:
-            self.running = False
-            if self.recording_thread and self.recording_thread.is_alive():
-                recording_thread_copy = self.recording_thread
-                self.recording_thread = None
-                if threading.current_thread() != recording_thread_copy:
-                    recording_thread_copy.join()
-                print("Recording thread stopped.")
-            self.recorder.stop_recording()
-
-    def record_and_process(self):
-        """녹음 및 처리 스레드"""
-        self.running = True
-        self.recording_thread = threading.Thread(target=self._record_and_process)
-        self.recording_thread.start()
-
+        # 텍스트를 발행하는 Publisher 생성
+        self.publisher_ = None
+    def start(self, publisher):
+        # 녹음 및 처리를 시작하는 메서드
+        if not self.running:
+            self.publisher_ = publisher
+            self.running = True
+            self.recording_thread = threading.Thread(target=self._record_and_process)
+            self.file_monitor_thread = threading.Thread(target=self._start_file_monitoring)
+            self.recording_thread.start()
+            self.file_monitor_thread.start()
+    def stop(self):
+        # 녹음 및 처리를 중지하는 메서드
+        self.running = False
+        if self.recording_thread and self.recording_thread.is_alive():
+            self.recording_thread.join()
+        if self.file_monitor_thread and self.file_monitor_thread.is_alive():
+            self.file_monitor_thread.join()
+        self.recorder.stop_recording()
+    def _start_file_monitoring(self):
+        # 파일 모니터링을 시작하는 메서드
+        directory = "/home/hj_rpi/PAM_Robot/src/ros_package/resource/mic_data"
+        while self.running:
+            if os.listdir(directory):
+                self.process_audio_files()
+            time.sleep(1)
     def _record_and_process(self):
         try:
+            # 음성 녹음 시작
             frames = self.recorder.start_recording(duration=4)
             max_recording_time = 10
             start_time = time.time()
-
             while rclpy.ok() and self.running:
                 if time.time() - start_time > max_recording_time:
+                    # 녹음 시간 제한에 도달하면 녹음 중지
                     print("Recording time limit reached! Saving recording...")
                     self.recorder.stop_recording()
                     self.running = False
                     break
                 time.sleep(1)
-
             print("Recording thread stopped.")
             self.recorder.stop_recording()
             self.process_audio_files()
-
         except OSError as e:
             print(f"Recording failed: {e}")
-            self.stop_threads()
-
+            self.stop()
     def process_audio_files(self):
-        """음성을 처리하고 텍스트를 큐에 추가하는 함수"""
-        directory = "/home/jongchanjang/my_mobile/src/ros_package/resource/mic_data"
+        directory = "/home/hj_rpi/PAM_Robot/src/ros_package/resource/mic_data"
         if os.listdir(directory):
             latest_file = sorted(os.listdir(directory))[-1]
             latest_file_path = os.path.join(directory, latest_file)
             print("Processing file:", latest_file_path)
+            # 오디오 파일을 텍스트로 변환
             text = audio_to_text(latest_file_path)
-            if text:
+            if text is not None:
                 print("Recognized text:", text)
                 self.text_queue.append(text)
+                # 발행
+                self.send_to_ros2(text)
             else:
                 print(f"Speech recognition could not understand audio: {latest_file_path}")
-                # 음성 인식 실패 시 빈 문자열 추가
                 self.text_queue.append("")
-
+                # 발행
+                self.send_to_ros2("")
             if os.path.exists(latest_file_path):
                 os.remove(latest_file_path)
-
-            # 큐에 새로운 텍스트가 추가되었음을 알림
             with self.text_queue_condition:
+                # 새로운 텍스트가 큐에 추가되었음을 알림
                 self.text_queue_condition.notify_all()
-
-    def monitor_file_system(self):
-        """파일 시스템 모니터링 스레드"""
-        directory = "/home/jongchanjang/my_mobile/src/ros_package/resource/mic_data"
-        print("Monitoring directory:", directory)
-        while rclpy.ok():
-            if os.listdir(directory):
-                latest_file = sorted(os.listdir(directory))[-1]
-                latest_file_path = os.path.join(directory, latest_file)
-                print("Processing file:", latest_file_path)
-                text = audio_to_text(latest_file_path)
-                if text:
-                    print("Recognized text:", text)
-                    self.text_queue.append(text)
-                else:
-                    print(f"Speech recognition could not understand audio: {latest_file_path}")
-                    # 음성 인식 실패 시 빈 문자열 추가
-                    self.text_queue.append("")
-
-                if os.path.exists(latest_file_path):
-                    os.remove(latest_file_path)
-
-                # 큐에 새로운 텍스트가 추가되었음을 알림
-                with self.text_queue_condition:
-                    self.text_queue_condition.notify_all()
-
-            time.sleep(1)
-        print("Monitoring thread stopped.")
-
-    def publish_recognized_text(self):
-        """인식된 텍스트를 발행하는 스레드"""
-        while rclpy.ok():
-            with self.text_queue_condition:
-                # 큐에 새로운 텍스트가 추가될 때까지 대기
-                self.text_queue_condition.wait_for(lambda: len(self.text_queue) > 0)
-                if self.text_queue:
-                    text = self.text_queue.pop(0)
-                    self.send_to_ros2(text)
-                    self.restart_node()  # 텍스트 발행 후 노드 재시작
-            time.sleep(1)
-        print("Publishing thread stopped.")
-
-    def restart_node(self):
-        """노드를 재시작하는 메서드"""
-        print("Restarting node...")
-        rclpy.shutdown()
-        os.execv(sys.executable, ['python3'] + sys.argv)
-
-
     def send_to_ros2(self, text):
         """ROS 2 메시지를 발행하는 함수"""
         msg = Voice()
         msg.command = text
         self.publisher_.publish(msg)
-
+        
+        
 class VoiceNode(Node):
     def __init__(self):
         super().__init__('unique_voice_input_node_name')
-        self.voice_recognition_node = VoiceRecognitionNode()
+        # 음성 인식 노드 인스턴스 초기화
+        self.voice_recognition_node = None
+        # voice_signal 서비스를 생성
         self.voice_signal_server = self.create_service(CommandString, '/voice_signal', self.voice_signal_callback)
-
+        # 결과 텍스트를 발행하는 Publisher 생성
+        self.publisher_ = self.create_publisher(Voice, '/recognized_text', 10)
     def voice_signal_callback(self, request, response):
-        """Callback function for voice start command"""
         self.get_logger().info('Voice signal received')
-
         if request.command == "voice_start":
+            # voice_start 요청이 들어오면 음성 인식 노드 시작
             self.get_logger().info('Processing voice start command')
-            if self.voice_recognition_node.running:
-                self.voice_recognition_node.stop_threads()
-            self.voice_recognition_node.record_and_process()
+            if self.voice_recognition_node and self.voice_recognition_node.running:
+                # 이미 실행 중인 음성 인식 노드가 있으면 중지
+                self.voice_recognition_node.stop()
+            # 새로운 음성 인식 노드 인스턴스 생성 및 시작
+            self.voice_recognition_node = VoiceRecognize()
+            self.voice_recognition_node.start(self.publisher_)
             response.success = True
             response.message = 'Voice processing started'
         else:
             response.success = False
             response.message = 'Unknown command'
-
         return response
-
 def main(args=None):
+    # ROS 2 초기화
     rclpy.init(args=args)
+    # VoiceNode 객체 생성
     voice_node = VoiceNode()
-
     try:
+        # 노드 실행
         rclpy.spin(voice_node)
     except KeyboardInterrupt:
         print("KeyboardInterrupt")
-
+    # 노드 종료 시 음성 인식 노드 중지 및 ROS 2 종료
+    if voice_node.voice_recognition_node:
+        voice_node.voice_recognition_node.stop()
     voice_node.destroy_node()
     rclpy.shutdown()
-
 if __name__ == '__main__':
     main()
