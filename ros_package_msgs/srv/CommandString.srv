@@ -1,5 +1,0 @@
-string command
-string description 
----
-bool success
-string message
