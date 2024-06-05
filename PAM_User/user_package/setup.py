@@ -24,6 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             'User_GUI = user_package.User_GUI:main',
+            'voice_recognize = user_package.voice_recognize:main',
         ],
     },
 )
