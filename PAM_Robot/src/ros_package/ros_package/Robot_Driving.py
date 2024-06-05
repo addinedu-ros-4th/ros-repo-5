@@ -101,19 +101,19 @@ class RobotDriver(Node):
                 goal_pose = self.set_goal_pose(*pt)
                 self.navigator.goToPose(goal_pose)
                 retries = 0
-            
+                
             while not self.navigator.isTaskComplete():
                 feedback = self.navigator.getFeedback()
-                if feedback:
-                    self.get_logger().info('Distance remaining: {:.2f}'.format(feedback.distance_remaining))
+
 
             result = self.navigator.getResult()
             if result == TaskResult.SUCCEEDED:
                 if current_route_segments == self.route_forward_segments:
-                    self.current_point = segment_index + 1
+                    self.current_point = segment_index
+                    self.get_logger().info('Reached goal: ({}, {}), current_point: {}'.format(pt[0], pt[1], (self.current_point + 1)))
                 elif current_route_segments == self.route_reverse_segments:
-                    self.current_point = 5 - segment_index
-                self.get_logger().info('Reached goal: ({}, {}), current_point: {}'.format(pt[0], pt[1], self.current_point))
+                    self.current_point = 4 - segment_index
+                    self.get_logger().info('Reached goal: ({}, {}), current_point: {}'.format(pt[0], pt[1], (self.current_point + 1)))
             elif result == TaskResult.CANCELED:
                 self.get_logger().info('Goal was canceled, exiting.')
                 return
@@ -134,7 +134,6 @@ class RobotDriver(Node):
         
         # 경로의 현재 세그먼트 따라가기
         self.follow_route_segment(current_route_segments, self.current_segment_index)
-
         # 세그먼트 인덱스 업데이트
         self.current_segment_index += 1
         self.get_logger().info('current_segment_index : {}'.format(self.current_segment_index))
@@ -144,7 +143,7 @@ class RobotDriver(Node):
             self.forward_patrol = not self.forward_patrol
             self.current_segment_index = 0
 
-        art_point = self.current_point - 1
+        art_point = self.current_point
         # 상태를 업데이트
         self.art = self.goal_poses_art[art_point]  # 수정된 부분
         self.current_state = 'arrive at {}'.format(self.art)  # 작품명에 도착
@@ -231,41 +230,64 @@ class RobotDriver(Node):
         return response
     
     def get_description_index(self, current_point):
-        if current_point == 1:
+        if current_point == 0:
             return 0
-        elif current_point == 3:
+        elif current_point == 2:
             return 1
-        elif current_point == 4:
+        elif current_point == 3:
             return 2
-        elif current_point == 6:
+        elif current_point == 5:
             return 3
+           
+    def get_current_point(self, description_index):
+        if description_index == 0:
+            return 0
+        elif description_index == 1:
+            return 2
+        elif description_index == 2:
+            return 3
+        elif description_index == 3:
+            return 5
+        else:
+            raise ValueError("Invalid description index")
     
     def handle_human_detect(self):
         self.get_logger().info('human_detect.')
         self.description_index = self.get_description_index(self.current_point)      
         self.follow_route_segment(self.route_description, self.description_index)
-        
+
 
     def handle_guide(self, description):
         self.get_logger().info('Robot guiding to description location.')
 
         # 현재 위치 인덱스와 목표 작품 인덱스 확인
         self.art_index = self.goal_poses_art.index(description)
-        self.description_index = self.get_description_index(self.current_point)
-        
+        self.get_logger().info('art_index: {}'.format(self.art_index))
+
         # 경로의 방향 결정 (정방향 또는 역방향)
-        if self.art_index > self.description_index:
-            current_route_segments = self.route_forward_segments
-            start_index = self.description_index
+        if self.art_index > self.current_point:
+            current_route_segments = self.route_forward_guide_segments
+            start_index = self.current_point + 1
             end_index = self.art_index
         else:
-            current_route_segments = self.route_reverse_segments
-            start_index = 5 - self.description_index
-            end_index = 5 - self.art_index
+            current_route_segments = self.route_reverse_guide_segments
 
+            start_index = 5 - self.current_point
+            end_index = 4 - self.art_index
+        self.get_logger().info('start_index: {}'.format(start_index))
+        self.get_logger().info('end_index: {}'.format(end_index))
         # 주행 경로를 따라 순차적으로 주행
-        for index in range(start_index, end_index + 1):
+        self.follow_route_segment(self.route_return_segments, self.description_index)
+        
+        for index in range(start_index, end_index + 1):        
+            self.get_logger().info('index: {}'.format(index))
             self.follow_route_segment(current_route_segments, index)
+        
+        self.current_point = self.art_index
+        self.get_logger().info('self.current_point: {}'.format(self.current_point))
+        self.description_index = self.get_description_index(self.current_point)      
+
+        self.follow_route_segment(self.route_description, self.description_index)
 
         # 도착 상태로 업데이트
         self.current_state = 'Arrived at {}'.format(description)
@@ -279,8 +301,26 @@ class RobotDriver(Node):
         self.follow_route_segment(self.route_return_segments, self.description_index)
         
         self.get_logger().info('Returned to patrol route at segment index: {}'.format(self.description_index))
-            
+        self.current_point = self.get_current_point(self.description_index)
 
+        if self.current_point == 5: 
+            self.forward_patrol = False
+            self.current_segment_index = 0
+        elif self.current_point == 0:
+            self.forward_patrol = True
+            self.current_segment_index = 1
+        elif self.current_point == 2:
+            if self.forward_patrol == True :
+                self.current_segment_index = 3
+            else :
+                self.current_segment_index = 3
+        elif self.current_point == 3:
+            if self.forward_patrol == True :
+                self.current_segment_index = 4
+            else :
+                self.current_segment_index = 2
+
+            
 
 def main(args=None):
     rp.init(args=args)
