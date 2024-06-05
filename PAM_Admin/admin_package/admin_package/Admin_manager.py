@@ -147,7 +147,7 @@ class Admin_Manager(Node):
 
         text = msg.command
         print(text)
-
+        text = text.replace(" ","")
         keywords = ["강아지", "고양이", "갈색말", "초록양"]
 
         if "설명" in text:

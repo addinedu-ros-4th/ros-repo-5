@@ -45,27 +45,38 @@ class Ros2PyQtApp(QMainWindow):
 
         # Map 오브젝트를 QLabel로 정의
         self.map_label = self.findChild(QLabel, 'map_label')
+
+        # camera 오브젝트를 Qlabel로 정의
+        self.camera_label = self.findChild(QLabel, 'camera_label')
         
 
     def display_image(self, cv_image):
         height, width, channel = cv_image.shape
         bytes_per_line = 3 * width
         q_image = QImage(cv_image.data, width, height, bytes_per_line, QImage.Format.Format_RGB888).rgbSwapped()
-        self.camera_label.setPixmap(QPixmap.fromImage(q_image))
+
+        # QLabel의 크기 가져오기
+        label_width = self.camera_label.width()
+        label_height = self.camera_label.height()
+
+        # QPixmap을 QLabel 크기에 맞게 조정
+        scaled_pixmap = q_image.scaled(label_width, label_height, aspectRatioMode=QtCore.Qt.AspectRatioMode.KeepAspectRatio)
+
+        self.camera_label.setPixmap(QPixmap.fromImage(scaled_pixmap))
 
 
     def update_map_label(self, map_image):
         # numpy 배열을 QImage로 변환
-        height, width = map_image.shape
-        bytes_per_line = width
-        q_image = QImage(map_image.data, width, height, bytes_per_line, QImage.Format.Format_Grayscale8)
-        
+        height, width, _ = map_image.shape  # 여기서는 채널 수를 무시하면 됩니다.
+        bytes_per_line = 3 * width
+        q_image = QImage(map_image.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)
+    
         # QImage를 QPixmap으로 변환하여 QLabel에 설정
         pixmap = QPixmap.fromImage(q_image)
 
 
-        # 이미지를 왼쪽으로 90도 회전
-        transformed_pixmap = pixmap.transformed(QTransform().rotate(90))
+        # 이미지를 왼쪽으로 0도 회전
+        transformed_pixmap = pixmap.transformed(QTransform().rotate(0))
 
         # QLabel의 크기 가져오기
         label_width = self.map_label.width()
@@ -128,46 +139,45 @@ class MapSubscriber(Node):
         self.subscription  # prevent unused variable warning
 
         # 맵 이미지 로드
-        self.map_image = cv2.imread('/home/hj/amr_ws/ROS/src/PAM_Admin/map.pgm', cv2.IMREAD_GRAYSCALE)
+        self.original_map_image = cv2.imread('/home/hj/Admin_map.png', cv2.IMREAD_COLOR)
 
         # 맵 정보 설정
-        self.resolution = 0.05  # 맵의 해상도
-        self.origin = [-0.327, -1.71, 0]  # 맵의 원점
+        self.resolution = 0.0064  # 맵의 해상도
+        self.origin = [-0.65, -1, 0]  # 맵의 원점
 
         # 이전 로봇 위치
         self.prev_robot_pose = None
 
         # 초기 로봇 위치 설정
-        self.robot_pose_x = int(-self.origin[0] / self.resolution)
-        self.robot_pose_y = int(-self.origin[1] / self.resolution)
+        self.robot_pose_x = int((-self.origin[0] / self.resolution))
+        self.robot_pose_y = int((-self.origin[1] / self.resolution))
 
         self.update_map_image()
 
         # 주기적으로 위치를 업데이트하는 타이머 설정
         self.timer = self.create_timer(0.1, self.timer_callback)
 
-
     def pose_callback(self, msg):
         # self.get_logger().info('Received /amcl_pose')
+
+        print(msg.pose.pose.position)
 
         # 로봇의 위치 받아오기
         self.robot_pose_x = int((msg.pose.pose.position.x - self.origin[0]) / self.resolution)  # x 위치
         self.robot_pose_y = int((msg.pose.pose.position.y - self.origin[1]) / self.resolution)  # y 위치
 
-
     def update_map_image(self):
+        # 원본 맵 이미지를 복사하여 현재 맵 이미지로 설정
+        self.map_image = self.original_map_image.copy()
+
         # 맵 이미지의 높이
         map_height = self.map_image.shape[0]
-
-        # 이전 로봇 위치 지우기
-        if self.prev_robot_pose is not None:
-            cv2.circle(self.map_image, self.prev_robot_pose, 3, (255, 255, 255), -1)
 
         # 로봇 위치를 이미지 좌표로 변환 (상하 반전)
         robot_image_y = map_height - self.robot_pose_y
 
         # 맵 이미지에 새로운 로봇 위치 표시
-        cv2.circle(self.map_image, (self.robot_pose_x, robot_image_y), 3, (0, 255, 0), -1)
+        cv2.circle(self.map_image, (self.robot_pose_x, robot_image_y), 10, (0, 255, 0), -1)
 
         # 이전 로봇 위치 업데이트
         self.prev_robot_pose = (self.robot_pose_x, robot_image_y)
@@ -180,7 +190,9 @@ class MapSubscriber(Node):
         self.update_map_image()
 
 
+
 class StateSubscriber(Node):
+
     def __init__(self, ui_app):
         super().__init__('state_subscriber')
         self.ui_app = ui_app
