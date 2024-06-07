@@ -10,7 +10,6 @@ from ros_package_msgs.srv import CommandString
 from ros_package_msgs.msg import Voice
 from ros_package_msgs.msg import RobotState
 from .DB_Manager import DatabaseManager
-import time
 import numpy as np
 import cv2
 
@@ -27,6 +26,13 @@ def detect_people(model, img):
     people_detected = detected_objects[detected_objects['name'] == 'person']
     return len(people_detected) > 0
 
+def detect_art(model, img):
+    results = model(img)
+    detected_arts = results.pandas().xyxy[0]
+    print(len(detected_arts))
+
+    return True if len(detected_arts) > 0 else False
+
 
 class Admin_Manager(Node):
     def __init__(self):
@@ -39,6 +45,10 @@ class Admin_Manager(Node):
 
         # YOLO 모델 불러오기
         self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
+
+        # 작품 학습한 모델 불러오기
+        self.art_model = torch.hub.load('ultralytics/yolov5', 'custom', '/home/jongchanjang/pinkbot/Art_yolov5s.pt')
+
         # CvBridge 객체 생성
         self.bridge = CvBridge()
         
@@ -74,11 +84,22 @@ class Admin_Manager(Node):
             10
         )
 
+        # end_theft 토픽 구독자 생성
+        self.art_subscription = self.create_subscription(
+            RobotState,
+            '/end_theft',
+            self.end_theft_callback,
+            10
+        )
+
         #  /robot_command 서비스 보내기 
         self.robot_command_client = self.create_client(CommandString, '/robot_command')
 
         # /patrol_command
         self.patrol_command_client = self.create_client(CommandString, '/patrol_command')
+
+        # 도난상황시 관리자로 토픽 전달
+        self.art_theft = self.create_publisher(RobotState, '/art_theft', 10)
 
         self.camera_subscription
         self.robot_state_subscription
@@ -94,11 +115,27 @@ class Admin_Manager(Node):
         print(len(people_detected))
 
         return True if len(people_detected) > 0 else False
+    
+
+    def detect_art(self, model, img):
+        results = model(img)
+        detected_arts = results.pandas().xyxy[0]
+        print(len(detected_arts))
+
+        return True if len(detected_arts) > 0 else False
+    
+
+    def end_theft_callback(self, msg):
+        # 도난 상황 종료 메시지 수신 시 패트롤 커맨드 다시 내리기
+        print(msg)
+        self.send_patrol_command("patrol")
+
 
     def camera_callback(self, msg):
         # 압축된 이미지를 OpenCV 이미지로 변환
         np_arr = np.frombuffer(msg.data, np.uint8)
         self.cv_img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
 
     def robot_state_callback(self, msg):
         # self.get_logger().info('Received /robot_state')
@@ -138,8 +175,13 @@ class Admin_Manager(Node):
                     self.send_robot_command("human_detect")
                     self.send_state = True
                 else:
-                    self.send_patrol_command("patrol")
-                    self.send_state = True
+                    if detect_art(self.art_model, self.cv_img):
+                        self.send_patrol_command("patrol")
+                        self.send_state = True
+                    else:
+                        msg = RobotState()
+                        msg.command = self.name
+                        self.art_theft.publish(msg) # 관리자로 도난상황 전파
 
 
     def user_voice_callback(self, msg):
@@ -148,7 +190,7 @@ class Admin_Manager(Node):
         text = msg.command
         print(text)
         text = text.replace(" ","")
-        keywords = ["강아지", "고양이", "갈색말", "초록양"]
+        keywords = ["아메리칸 슈렉", "자가격리 중인 예수", "바트심슨의 절규", "스쿠터 탄 나폴레옹"]
 
         if "설명" in text:
             self.get_logger().info("Description command detected!")

@@ -16,7 +16,10 @@ from PyQt6 import QtCore
 # from ros_package_msgs.srv import CommandString 
 from .DB_Manager import DatabaseManager
 from datetime import datetime
+import os
 import numpy as np
+from gtts import gTTS
+import pygame
 
 class Ros2PyQtApp(QMainWindow):
     
@@ -24,7 +27,7 @@ class Ros2PyQtApp(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        uic.loadUi("/home/hj/amr_ws/ROS/src/PAM_Admin/src/admin_package/admin_package/gui.ui", self)
+        uic.loadUi("/home/jongchanjang/pinkbot/src/PAM_Admin/admin_package/resource/gui.ui", self)
         self.setWindowTitle("관리자 전용")
 
         self.update_image_signal.connect(self.update_map_label)  # 신호와 슬롯 연결
@@ -33,6 +36,9 @@ class Ros2PyQtApp(QMainWindow):
 
         self.person_flag = False
         self.detect_array = []
+
+        # pygame 초기화
+        pygame.init()
 
         #DB연결
         self.db_manager = DatabaseManager(host="localhost", user="root")
@@ -48,6 +54,25 @@ class Ros2PyQtApp(QMainWindow):
 
         # camera 오브젝트를 Qlabel로 정의
         self.camera_label = self.findChild(QLabel, 'camera_label')
+
+
+    def play_tts(self, text):
+        # TTS 생성
+        tts = gTTS(text, lang='ko')
+
+        # 임시 파일로 저장
+        tts.save('temp.mp3')
+
+        # 재생
+        pygame.mixer.music.load('temp.mp3')
+        pygame.mixer.music.play()
+
+        # 재생이 완료될 때까지 대기
+        while pygame.mixer.music.get_busy():
+            pygame.time.Clock().tick(10)
+
+        # 임시 파일 삭제
+        os.remove('temp.mp3')
         
 
     def display_image(self, cv_image):
@@ -139,7 +164,7 @@ class MapSubscriber(Node):
         self.subscription  # prevent unused variable warning
 
         # 맵 이미지 로드
-        self.original_map_image = cv2.imread('/home/hj/Admin_map.png', cv2.IMREAD_COLOR)
+        self.original_map_image = cv2.imread('/home/jongchanjang/pinkbot/src/maps/Admin_map.png', cv2.IMREAD_COLOR)
 
         # 맵 정보 설정
         self.resolution = 0.0064  # 맵의 해상도
@@ -169,6 +194,9 @@ class MapSubscriber(Node):
     def update_map_image(self):
         # 원본 맵 이미지를 복사하여 현재 맵 이미지로 설정
         self.map_image = self.original_map_image.copy()
+
+        # BGR에서 RGB로 색상 공간 변환
+        self.map_image = cv2.cvtColor(self.map_image, cv2.COLOR_BGR2RGB)
 
         # 맵 이미지의 높이
         map_height = self.map_image.shape[0]
@@ -216,7 +244,55 @@ class StateSubscriber(Node):
             self.ui_app.state_label.setText(current_state)
             self.previous_state = current_state
 
+
+
+class TheftDetector(Node):
+    def __init__(self, ui_app):
+        super().__init__('theft_detector')
+        self.ui_app = ui_app
+
+        self.subscription = self.create_subscription(
+            RobotState,
+            '/art_theft',
+            self.theft_callback,
+            10)
+
+        self.end_theft_publisher = self.create_publisher(
+            RobotState,
+            '/end_theft',
+            10)
+
+        self.subscription  # prevent unused variable warning
+
+        # END 버튼을 누르면 도난상황 종료 알림
+        self.end_simul = self.ui_app.findChild(QPushButton, 'theft') 
+        self.end_simul.clicked.connect(self.end_theft) 
+
+    def theft_callback(self, msg):
+
+        art_name = msg.command
+
+        # current_state 업데이트: 도난 상황
+        self.ui_app.state_label.setText('{} 작품 도난 상황 발생'.format(art_name))
+
+        # TTS 실행: 도난 상황 발생
+        self.ui_app.play_tts('{} 작품 도난 상황이 발생하였습니다.'.format(art_name))
+
+    def end_theft(self):
+
+        # current_state 업데이트: 도난 상황 종료
+        self.ui_app.state_label.setText('작품 도난 상황 종료')
+
+        # TTS 실행: 도난 상황 종료
+        self.ui_app.play_tts('작품 도난 상황이 종료되었습니다.')
+
+        # 도난 상황 종료를 알리는 메시지 발행
+        msg = RobotState()
+        msg.command = '도난 상황 종료'
+        self.end_theft_publisher.publish(msg)
         
+
+
 def main(args=None):
     rclpy.init(args=args)
     app = QApplication(sys.argv)
@@ -228,10 +304,12 @@ def main(args=None):
     image_subscriber = ImageSubscriber(ros2_pyqt_app)
     map_subscriber = MapSubscriber(ros2_pyqt_app)
     state_subscriber = StateSubscriber(ros2_pyqt_app)
+    theft_detector = TheftDetector(ros2_pyqt_app)
     
     executor.add_node(image_subscriber)
     executor.add_node(map_subscriber)
     executor.add_node(state_subscriber)
+    executor.add_node(theft_detector)
 
     def run_ros_spin():
         executor.spin()

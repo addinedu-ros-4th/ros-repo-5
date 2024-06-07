@@ -22,7 +22,7 @@ class Ros2PyQtApp(QDialog):
     def __init__(self):
         super().__init__()
         
-        uic.loadUi("/home/hj/amr_ws/ROS/src/PAM_User/src/user_package/resource/User_GUI.ui", self)
+        uic.loadUi("/home/jongchanjang/pinkbot/src/PAM_User/user_package/resource/User_GUI.ui", self)
         self.setWindowTitle("패트와 매트")
         
         # Map 오브젝트를 QLabel로 정의
@@ -76,7 +76,7 @@ class UserGUI(Node):
         pygame.init()
 
         # 맵 이미지 로드
-        self.original_map_image = cv2.imread('/home/hj/User_map.png', cv2.IMREAD_COLOR)
+        self.original_map_image = cv2.imread('/home/jongchanjang/pinkbot/src/maps/User_map.png', cv2.IMREAD_COLOR)
 
         # 맵 정보 설정
         self.resolution = 0.0064  # 맵의 해상도
@@ -179,6 +179,9 @@ class UserGUI(Node):
     def update_map_image(self):
         # 원본 맵 이미지를 복사하여 현재 맵 이미지로 설정
         self.map_image = self.original_map_image.copy()
+
+        # BGR에서 RGB로 색상 공간 변환
+        self.map_image = cv2.cvtColor(self.map_image, cv2.COLOR_BGR2RGB)
 
         # 맵 이미지의 높이
         map_height = self.map_image.shape[0]

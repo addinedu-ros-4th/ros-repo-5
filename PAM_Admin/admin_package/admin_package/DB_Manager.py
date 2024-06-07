@@ -8,7 +8,7 @@ class DatabaseManager:
         self.db_name = "ros_final"
         self.cur = None
         self.conn = None
-        self.password = "guswns123"
+        self.password = "1234"
 
 
     def connect_database(self, db_name=None):
