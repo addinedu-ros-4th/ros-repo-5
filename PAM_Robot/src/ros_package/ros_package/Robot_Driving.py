@@ -47,7 +47,10 @@ class RobotDriver(Node):
         
         self.route_reverse_guide_segments = routes.route_reverse_guide_segments
         
-        self.route_return_segments = routes.route_return_segments
+        self.route_return_forward = routes.route_return_forward
+        self.route_return_reverse = routes.route_return_reverse
+        self.route_forward_return_segments = routes.route_forward_return_segments
+        self.route_reverse_return_segments = routes.route_reverse_return_segments
                 
         self.set_initial_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
         
@@ -96,6 +99,8 @@ class RobotDriver(Node):
 
     def follow_route_segment(self, current_route_segments, segment_index, max_retries=3):
         current_route = current_route_segments[segment_index]
+        self.get_logger().info('segment_index : {}'.format(segment_index))
+
         for pt in current_route:
             if isinstance(pt, (list, tuple)) and len(pt) == 7:                
                 goal_pose = self.set_goal_pose(*pt)
@@ -114,6 +119,12 @@ class RobotDriver(Node):
                 elif current_route_segments == self.route_reverse_segments:
                     self.current_point = 4 - segment_index
                     self.get_logger().info('Reached goal: ({}, {}), current_point: {}'.format(pt[0], pt[1], (self.current_point + 1)))
+                    
+                if self.current_point == 5 :
+                    self.forward_patrol = False
+                elif self.current_point == 0:
+                    self.forward_patrol = True
+                
             elif result == TaskResult.CANCELED:
                 self.get_logger().info('Goal was canceled, exiting.')
                 return
@@ -140,14 +151,15 @@ class RobotDriver(Node):
 
         # 경로의 끝에 도달하면 순찰 방향을 반대로 전환하고 인덱스 초기화
         if self.current_segment_index >= len(current_route_segments):
-            self.forward_patrol = not self.forward_patrol
             self.current_segment_index = 0
 
         art_point = self.current_point
         # 상태를 업데이트
         self.art = self.goal_poses_art[art_point]  # 수정된 부분
         self.current_state = 'arrive at {}'.format(self.art)  # 작품명에 도착
-               
+        self.get_logger().info('current_state: {}'.format(self.current_state))
+        self.get_logger().info('forward_patrol: {}'.format(self.forward_patrol))
+
 
     def patrol_command_callback(self, request, response):
 
@@ -216,7 +228,7 @@ class RobotDriver(Node):
             self.publish_robot_state()
 
             self.comeback_to_patrol()
-
+            
             self.patrol_work()
 
             self.publish_robot_state()
@@ -267,17 +279,20 @@ class RobotDriver(Node):
         # 경로의 방향 결정 (정방향 또는 역방향)
         if self.art_index > self.current_point:
             current_route_segments = self.route_forward_guide_segments
+            current_return_segments = self.route_return_forward
             start_index = self.current_point + 1
             end_index = self.art_index
         else:
             current_route_segments = self.route_reverse_guide_segments
+            current_return_segments = self.route_return_reverse
 
             start_index = 5 - self.current_point
             end_index = 4 - self.art_index
         self.get_logger().info('start_index: {}'.format(start_index))
         self.get_logger().info('end_index: {}'.format(end_index))
         # 주행 경로를 따라 순차적으로 주행
-        self.follow_route_segment(self.route_return_segments, self.description_index)
+        
+        self.follow_route_segment(current_return_segments, self.description_index)
         
         for index in range(start_index, end_index + 1):        
             self.get_logger().info('index: {}'.format(index))
@@ -298,27 +313,70 @@ class RobotDriver(Node):
         self.get_logger().info('Returning to patrol route.')
         
         # 주행 경로를 따라 주행
-        self.follow_route_segment(self.route_return_segments, self.description_index)
-        
+        if self.forward_patrol == True :
+            current_route_segments = self.route_return_forward
+        else :
+            current_route_segments = self.route_return_reverse
+            
+        self.follow_route_segment(current_route_segments, self.description_index)
+            
         self.get_logger().info('Returned to patrol route at segment index: {}'.format(self.description_index))
         self.current_point = self.get_current_point(self.description_index)
 
         if self.current_point == 5: 
-            self.forward_patrol = False
             self.current_segment_index = 0
+            self.follow_route_segment(self.route_reverse_return_segments, self.current_segment_index)
+            self.current_point = 4
+
+            self.current_segment_index += 1
+
         elif self.current_point == 0:
-            self.forward_patrol = True
             self.current_segment_index = 1
+            self.follow_route_segment(self.route_forward_return_segments, self.current_segment_index)
+            self.current_point = 1
+            self.current_segment_index += 1
+
         elif self.current_point == 2:
             if self.forward_patrol == True :
                 self.current_segment_index = 3
-            else :
-                self.current_segment_index = 3
-        elif self.current_point == 3:
-            if self.forward_patrol == True :
-                self.current_segment_index = 4
+                self.follow_route_segment(self.route_forward_return_segments, self.current_segment_index)
+                self.current_point = 3
+                self.current_segment_index += 1
+
             else :
                 self.current_segment_index = 2
+                self.follow_route_segment(self.route_reverse_return_segments, self.current_segment_index)
+                self.current_segment_index += 1
+                self.follow_route_segment(self.route_reverse_return_segments, self.current_segment_index)
+                self.current_segment_index += 1
+                self.current_point = 1
+
+
+
+        elif self.current_point == 3:
+            if self.forward_patrol == True :
+                self.current_segment_index = 3
+                self.follow_route_segment(self.route_forward_return_segments, self.current_segment_index)
+                self.current_segment_index += 1
+                self.follow_route_segment(self.route_forward_return_segments, self.current_segment_index)
+                self.current_segment_index += 1
+                self.current_point = 4
+            else :
+                self.current_segment_index = 2
+                self.follow_route_segment(self.route_reverse_return_segments, self.current_segment_index)
+                self.current_segment_index += 1
+                self.current_point = 1
+
+                
+        art_point = self.current_point
+        self.get_logger().info('art_point: {}'.format(art_point))   
+        # 상태를 업데이트
+        self.art = self.goal_poses_art[art_point]  # 수정된 부분
+        self.current_state = 'arrive at {}'.format(self.art)  # 작품명에 도착
+        self.get_logger().info('current_state: {}'.format(self.current_state))   
+
+        self.get_logger().info('current_segment_index : {}'.format(self.current_segment_index))
+        self.get_logger().info('forward_patrol : {}'.format(self.forward_patrol))
 
             
 
