@@ -51,6 +51,8 @@ class RobotDriver(Node):
         self.route_return_reverse = routes.route_return_reverse
         self.route_forward_return_segments = routes.route_forward_return_segments
         self.route_reverse_return_segments = routes.route_reverse_return_segments
+        self.route_forward_guide_last = routes.route_forward_guide_last
+        self.route_reverse_guide_last = routes.route_reverse_guide_last
                 
         self.set_initial_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
         
@@ -280,11 +282,13 @@ class RobotDriver(Node):
         if self.art_index > self.current_point:
             current_route_segments = self.route_forward_guide_segments
             current_return_segments = self.route_return_forward
+            current_guide_last = self.route_forward_guide_last
             start_index = self.current_point + 1
             end_index = self.art_index
         else:
             current_route_segments = self.route_reverse_guide_segments
             current_return_segments = self.route_return_reverse
+            current_guide_last = self.route_reverse_guide_last
 
             start_index = 5 - self.current_point
             end_index = 4 - self.art_index
@@ -294,15 +298,15 @@ class RobotDriver(Node):
         
         self.follow_route_segment(current_return_segments, self.description_index)
         
-        for index in range(start_index, end_index + 1):        
+        for index in range(start_index, end_index):        
             self.get_logger().info('index: {}'.format(index))
             self.follow_route_segment(current_route_segments, index)
-        
+
+        self.follow_route_segment(current_guide_last, end_index)
+
         self.current_point = self.art_index
         self.get_logger().info('self.current_point: {}'.format(self.current_point))
         self.description_index = self.get_description_index(self.current_point)      
-
-        self.follow_route_segment(self.route_description, self.description_index)
 
         # 도착 상태로 업데이트
         self.current_state = 'Arrived at {}'.format(description)

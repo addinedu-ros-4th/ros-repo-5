@@ -143,6 +143,7 @@ route_forward_guide_segments = [
     ],
     [
     (1.15, 0.7, 0.0, *euler_to_quaternion(math.radians(0))),
+    (1.0, 0.7, 0.0, *euler_to_quaternion(math.radians(-90))),
     ],
     [
     (1.2, -0.15, 0.0, *euler_to_quaternion(math.radians(-90))),
@@ -227,5 +228,103 @@ route_reverse_return_segments = [
     [
     (0.2, -0.15, 0.0, *euler_to_quaternion(math.radians(-90))),
     (0.2, 0.0, 0.0, *euler_to_quaternion(math.radians(0)))
+    ],
+]
+
+route_forward_guide_last = [
+    [
+    (0.25, 0.0, 0.0, *euler_to_quaternion(math.radians(0))),
+    ],
+    [
+    (0.1, 0.95, 0.0, *euler_to_quaternion(math.radians(90))),
+    (0.1, 0.8, 0.0, *euler_to_quaternion(math.radians(0))),            
+    ],
+    [
+    (1.15, 0.7, 0.0, *euler_to_quaternion(math.radians(0))),
+    (1.0, 0.7, 0.0, *euler_to_quaternion(math.radians(-90))),
+    (1.0, 0.25, 0.0, *euler_to_quaternion(math.radians(-90))),
+    (1.0, 0.4, 0.0, *euler_to_quaternion(math.radians(0))),
+    (1.55, 0.4, 0.0, *euler_to_quaternion(math.radians(0))),
+    (1.4, 0.4, 0.0, *euler_to_quaternion(math.radians(90))),
+    ],
+    [
+    (1.2, 0.15, 0.0, *euler_to_quaternion(math.radians(-90))),
+    (1.2, 0.3, 0.0, *euler_to_quaternion(math.radians(180))),
+    (0.95 ,0.3, 0.0, *euler_to_quaternion(math.radians(180))),
+    (0.8 ,0.3, 0.0, *euler_to_quaternion(math.radians(-90))),
+    ],
+    [
+    (1.2, 0.0, 0.0, *euler_to_quaternion(math.radians(0))),
+    (2.35, 0.0, 0.0, *euler_to_quaternion(math.radians(0))),
+    (2.2, 0.0, 0.0, *euler_to_quaternion(math.radians(90))),            
+    ],
+    [
+    (2.2, 0.55, 0.0, *euler_to_quaternion(math.radians(90))),
+    (2.2 ,0.4, 0.0, *euler_to_quaternion(math.radians(180))),
+    (1.65 ,0.4, 0.0, *euler_to_quaternion(math.radians(180))),
+    (1.8 ,0.4, 0.0, *euler_to_quaternion(math.radians(90))),
+    ],
+]
+
+route_reverse_guide_last = [
+    [
+    (2.2, -0.05, 0.0, *euler_to_quaternion(math.radians(90))),
+    (2.2, 0.1, 0.0, *euler_to_quaternion(math.radians(180))),    
+    ],
+    [
+    (1.05, 0.0, 0.0, *euler_to_quaternion(math.radians(180))),
+    (1.2, 0.0, 0.0, *euler_to_quaternion(math.radians(90))),
+    (1.2, 0.45, 0.0, *euler_to_quaternion(math.radians(90))),
+    (1.2, 0.3, 0.0, *euler_to_quaternion(math.radians(180))),
+    (0.95 ,0.3, 0.0, *euler_to_quaternion(math.radians(180))),
+    (0.8 ,0.3, 0.0, *euler_to_quaternion(math.radians(-90))),
+    ],
+    [
+    (1.0, 0.55, 0.0, *euler_to_quaternion(math.radians(90))),
+    (1.0, 0.4, 0.0, *euler_to_quaternion(math.radians(0))),
+    (1.55, 0.4, 0.0, *euler_to_quaternion(math.radians(0))),
+    (1.4, 0.4, 0.0, *euler_to_quaternion(math.radians(90))),
+    ],
+    [
+    (1.0, 0.7, 0.0, *euler_to_quaternion(math.radians(180))),
+    (0.05, 0.7, 0.0, *euler_to_quaternion(math.radians(180))),
+    (0.2, 0.7, 0.0, *euler_to_quaternion(math.radians(-90))),
+    ],
+    [
+    (0.2, -0.15, 0.0, *euler_to_quaternion(math.radians(-90))),
+    (0.2, 0.0, 0.0, *euler_to_quaternion(math.radians(0))),
+    (0.45, 0.3, 0.0, *euler_to_quaternion(math.radians(0))),
+    (0.3, 0.3, 0.0, *euler_to_quaternion(math.radians(-90))),
+    ],
+]
+
+route_description = [
+    [
+    (0.1, 0.0, 0.0, *euler_to_quaternion(math.radians(90))),
+    (0.2 , 0.45, 0.0, *euler_to_quaternion(math.radians(90))),
+    (0.1 , 0.3, 0.0, *euler_to_quaternion(math.radians(0))),
+    (0.45, 0.3, 0.0, *euler_to_quaternion(math.radians(0))),
+    (0.3, 0.3, 0.0, *euler_to_quaternion(math.radians(-90))),
+    ],
+    [
+    (1.0, 0.7, 0.0, *euler_to_quaternion(math.radians(-90))),
+    (1.0, 0.25, 0.0, *euler_to_quaternion(math.radians(-90))),
+    (1.0, 0.4, 0.0, *euler_to_quaternion(math.radians(0))),
+    (1.55, 0.4, 0.0, *euler_to_quaternion(math.radians(0))),
+    (1.4, 0.4, 0.0, *euler_to_quaternion(math.radians(90))),
+    ],
+    [
+    (1.2, 0.0, 0.0, *euler_to_quaternion(math.radians(90))),
+    (1.2, 0.45, 0.0, *euler_to_quaternion(math.radians(90))),
+    (1.2, 0.3, 0.0, *euler_to_quaternion(math.radians(180))),
+    (0.95 ,0.3, 0.0, *euler_to_quaternion(math.radians(180))),
+    (0.8 ,0.3, 0.0, *euler_to_quaternion(math.radians(-90))),
+    ],
+    [
+    (2.2, 0.7, 0.0, *euler_to_quaternion(math.radians(-90))),
+    (2.2 ,0.25, 0.0, *euler_to_quaternion(math.radians(-90))),
+    (2.2 ,0.4, 0.0, *euler_to_quaternion(math.radians(180))),
+    (1.65 ,0.4, 0.0, *euler_to_quaternion(math.radians(180))),
+    (1.8 ,0.4, 0.0, *euler_to_quaternion(math.radians(90))),
     ],
 ]
