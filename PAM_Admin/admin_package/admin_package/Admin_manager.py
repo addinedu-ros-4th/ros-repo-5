@@ -54,6 +54,7 @@ class Admin_Manager(Node):
         
         self.arrive = False
         self.send_state = False   
+        self.night = False
         # 초기 이미지 생성 (예: 640x480, 검정색 이미지)
         initial_image = np.zeros((480, 640, 3), dtype=np.uint8)
         self.cv_img = initial_image     
@@ -175,7 +176,7 @@ class Admin_Manager(Node):
                     self.send_robot_command("human_detect")
                     self.send_state = True
                 else:
-                    if detect_art(self.art_model, self.cv_img):
+                    if self.night == True and detect_art(self.art_model, self.cv_img):
                         self.send_patrol_command("patrol")
                         self.send_state = True
                     else:
