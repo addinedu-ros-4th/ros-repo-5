@@ -56,7 +56,7 @@ class RobotDriver(Node):
                 
         self.set_initial_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
         
-        self.goal_poses_art = ['강아지','2','고양이','초록양','5','갈색말'] # 작품위치에 따른 작품명
+        self.goal_poses_art = ['아메리칸 슈렉','2','자가격리 중인 예수','바트심슨의 절규','5','스쿠터 탄 나폴레옹'] # 작품위치에 따른 작품명
         self.current_art = None
         # 스타트 신호
         self.publish_robot_state()
