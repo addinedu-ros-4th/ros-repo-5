@@ -147,8 +147,8 @@ class Admin_Manager(Node):
 
         text = msg.command
         print(text)
-        text = text.replace(" ","")
-        keywords = ["강아지", "고양이", "갈색말", "초록양"]
+        # text = text.replace(" ","")
+        keywords = ["아메리칸 슈렉", "자가격리 중인 예수", "바트심슨의 절규", "스쿠터 탄 나폴레옹"]
 
         if "설명" in text:
             self.get_logger().info("Description command detected!")

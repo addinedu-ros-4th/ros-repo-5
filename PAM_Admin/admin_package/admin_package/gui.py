@@ -48,7 +48,6 @@ class Ros2PyQtApp(QMainWindow):
 
         # camera 오브젝트를 Qlabel로 정의
         self.camera_label = self.findChild(QLabel, 'camera_label')
-        
 
     def display_image(self, cv_image):
         height, width, channel = cv_image.shape
@@ -170,6 +169,9 @@ class MapSubscriber(Node):
         # 원본 맵 이미지를 복사하여 현재 맵 이미지로 설정
         self.map_image = self.original_map_image.copy()
 
+        # BGR에서 RGB로 색상 공간 변환
+        self.map_image = cv2.cvtColor(self.map_image, cv2.COLOR_BGR2RGB)
+
         # 맵 이미지의 높이
         map_height = self.map_image.shape[0]
 
@@ -216,7 +218,7 @@ class StateSubscriber(Node):
             self.ui_app.state_label.setText(current_state)
             self.previous_state = current_state
 
-        
+
 def main(args=None):
     rclpy.init(args=args)
     app = QApplication(sys.argv)
